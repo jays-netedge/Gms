@@ -17,6 +17,8 @@ use App\Models\GmsOffice;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use App\Exports\BookingReportExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Class ReportController
@@ -34,7 +36,10 @@ class ReportController extends Controller
     {
         $this->request = $request;
     }
-
+    
+    public function bookingReportExport(){
+        return Excel::store(new bookingReportExport, 'booking.xlsx');
+    }
     /**
      * @param Request $request
      * @return array
@@ -52,49 +57,58 @@ class ReportController extends Controller
         $book_cnno = $this->request->book_cnno;
         $book_pin = $this->request->book_pin;
 
-        $query = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')->join('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')->select(
-            'gms_booking_dtls.book_cnno',
-            'gms_booking_dtls.book_org',
-            'gms_booking_dtls.book_emp_code',
-            'gms_booking_dtls.book_cust_type',
-            'gms_booking_dtls.book_cust_code',
-            'gms_customer.cust_la_ent',
-            'gms_booking_dtls.book_fr_cust_code',
-            'gms_booking_dtls.book_mfno',
-            'gms_booking_dtls.book_mfrefno',
-            'gms_booking_dtls.book_mfdate',
-            'gms_booking_dtls.book_mftime',
-            'gms_booking_dtls.book_refno',
-            'gms_booking_dtls.book_pin',
-            'gms_booking_dtls.book_org',
-            'gms_city.city_name',
-            'gms_booking_dtls.book_cons_addr',
-            'gms_booking_dtls.book_cn_dtl',
-            'gms_booking_dtls.book_product_type',
-            'gms_booking_dtls.book_mode',
-            'gms_booking_dtls.book_doc',
-            'gms_booking_dtls.book_weight',
-            'gms_booking_dtls.book_vol_weight',
-            'gms_booking_dtls.book_vol_breight',
-            'gms_booking_dtls.book_vol_height',
-            'gms_booking_dtls.book_pcs',
-            'gms_booking_dtls.book_remarks',
-            'gms_booking_dtls.book_service_type',
-            'gms_booking_dtls.book_current_status',
-            'gms_booking_dtls.book_pod_scan',
-            'gms_booking_dtls.book_billamt',
-            'gms_booking_dtls.book_total_amount'
+        
+        $query = GmsBookingDtls::
+        leftJoin('gms_customer as book_customer', 'book_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')
+            ->leftJoin('gms_customer as book_fr_customer', 'book_fr_customer.cust_code', '=', 'gms_booking_dtls.book_fr_cust_code')
+            ->leftJoin('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')
+            ->select(
+                'gms_booking_dtls.id',
+                'gms_booking_dtls.book_br_code',
+                'gms_booking_dtls.book_emp_code',
+                'gms_booking_dtls.book_cust_type',
+                'gms_booking_dtls.book_cust_code',
+                'book_customer.cust_name',
+                'gms_booking_dtls.book_fr_cust_code',
+                'book_fr_customer.cust_name',
+                'gms_booking_dtls.book_mfno',
+                'gms_booking_dtls.book_mfrefno',
+                'gms_booking_dtls.book_mfdate',
+                'gms_booking_dtls.book_mftime',
+                'gms_booking_dtls.book_refno',
+                'gms_booking_dtls.book_pin',
+                'gms_booking_dtls.book_org',
+                'gms_booking_dtls.book_dest',
+                'gms_booking_dtls.book_cons_addr',
+                'gms_booking_dtls.book_cn_dtl',
+                'gms_booking_dtls.book_product_type',
+                'gms_booking_dtls.book_mode',
+                'gms_booking_dtls.book_doc',
+                'gms_booking_dtls.book_weight',
+                'gms_booking_dtls.book_vol_weight',
+                DB::raw("CONCAT('gms_booking_dtls.book_vol_lenght,book_vol_height,book_vol_breight') AS book_vol_weight_LBH"),
+                // 'gms_booking_dtls.book_vol_lenght',
+                // 'gms_booking_dtls.book_vol_height',
+                // 'gms_booking_dtls.book_vol_breight',
+                'gms_booking_dtls.book_pcs',
+                'gms_booking_dtls.book_remarks',
+                'gms_booking_dtls.book_service_type',
+                'gms_booking_dtls.book_current_status',
+                'gms_booking_dtls.book_pod_scan',
+                'gms_booking_dtls.book_billamt',
+                'gms_booking_dtls.book_total_amount'
+            );
 
-        );
-        $query2 = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')->join('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')->select(
-            DB::raw('count(book_cnno) as totalcnno'),
-            DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 0 THEN 1 END)) As notDelivered'),
-            DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 1 THEN 0 END)) As delivered'),
+         $query2 = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')->join('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')->select(
+        DB::raw('count(book_cnno) as totalcnno'),
+        DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 0 THEN 1 END)) As notDelivered'),
+        DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 1 THEN 0 END)) As delivered'),
 
-        );
-        $count['totalcnnno'] = 0;
-        $count['notDelivered'] = 0;
-        $count['delivered'] = 0;
+    );
+
+          $count['totalcnnno'] = 0;
+          $count['notDelivered']=0;
+          $count['delivered'] = 0;
 
         if (isset($from_date) || isset($to_date) || isset($book_product_type) || isset($book_doc) || isset($book_mode) || isset($book_service_type) || isset($book_cust_type) || isset($book_cust_code) || isset($book_cnno) || isset($book_pin)) {
             if ($from_date && $to_date) {
@@ -121,7 +135,7 @@ class ReportController extends Controller
             }
             if (isset($book_cust_type)) {
                 $query->where('gms_booking_dtls.book_cust_type', $book_cust_type);
-                $query2->where('gms_booking_dtls.book_cust_type', $book_cust_type);
+                 $query2->where('gms_booking_dtls.book_cust_type', $book_cust_type);
             }
             if (isset($book_cust_code)) {
                 $query->where('gms_booking_dtls.book_cust_code', $book_cust_code);
@@ -137,12 +151,14 @@ class ReportController extends Controller
             }
 
             $query->orderBy('book_mfdate', 'DESC');
-        }
 
-        $response['Status']['report'] = $query->get();
-        $response['Status']['count'] = $query2->get();
-        return $response;
-    }
+
+        }
+            $response['Status']['report'] = $query->get();
+            $response['Status']['count'] = $query2->get();
+            return $response;
+
+}
 
     public function codTopayReport(Request $request)
     {
@@ -233,16 +249,16 @@ class ReportController extends Controller
                     $response['Status'] = $query2->get();
                 } else {
                     $reportQuery = GmsPmfDtls::select(
-                        'gms_pmf_dtls.pmf_no',
-                        DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
-                        'gms_pmf_dtls.pmf_dest',
-                        'gms_pmf_dtls.pmf_mode',
-                        'gms_pmf_dtls.pmf_cnno',
-                        'gms_pmf_dtls.pmf_city',
-                        'gms_pmf_dtls.pmf_wt',
-                        'gms_pmf_dtls.pmf_pin',
-                        'gms_pmf_dtls.pmf_doc'
-                    );
+                      'gms_pmf_dtls.pmf_no',
+                     DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
+                      'gms_pmf_dtls.pmf_dest',
+                      'gms_pmf_dtls.pmf_mode',
+                      'gms_pmf_dtls.pmf_cnno',
+                      'gms_pmf_dtls.pmf_city',
+                      'gms_pmf_dtls.pmf_wt',
+                      'gms_pmf_dtls.pmf_pin',
+                      'gms_pmf_dtls.pmf_doc'
+                     );
                     $query = GmsPmfDtls::select(
                         DB::raw('count(DISTINCT pmf_no)as totalOPmf'),
                         DB::raw('count(pmf_cnno)as totalCnno'),
@@ -273,6 +289,7 @@ class ReportController extends Controller
                 }
             }
         }
+
     }
 
 
@@ -291,21 +308,21 @@ class ReportController extends Controller
                 $response['Status'] = $query2->get();
             } else {
                 $reportQuery = GmsPmfDtls::select(
-                    'gms_pmf_dtls.pmf_no',
-                    DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
-                    'gms_pmf_dtls.pmf_dest',
-                    'gms_pmf_dtls.pmf_mode',
-                    'gms_pmf_dtls.pmf_cnno',
-                    'gms_pmf_dtls.pmf_city',
-                    'gms_pmf_dtls.pmf_wt',
-                    'gms_pmf_dtls.pmf_actual_wt',
-                    'gms_pmf_dtls.pmf_actual_received_wt',
-                    'gms_pmf_dtls.pmf_pin',
-                    'gms_pmf_dtls.pmf_cd_no',
-                    'gms_pmf_dtls.pmf_status',
-                    'gms_pmf_dtls.pmf_doc',
-
-                );
+                      'gms_pmf_dtls.pmf_no',
+                     DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
+                      'gms_pmf_dtls.pmf_dest',
+                      'gms_pmf_dtls.pmf_mode',
+                      'gms_pmf_dtls.pmf_cnno',
+                      'gms_pmf_dtls.pmf_city',
+                      'gms_pmf_dtls.pmf_wt',
+                      'gms_pmf_dtls.pmf_actual_wt',
+                      'gms_pmf_dtls.pmf_actual_received_wt',
+                      'gms_pmf_dtls.pmf_pin',
+                      'gms_pmf_dtls.pmf_cd_no',
+                      'gms_pmf_dtls.pmf_status',
+                      'gms_pmf_dtls.pmf_doc',
+                      
+                     );
 
                 $query = GmsPmfDtls::select(
                     DB::raw('count(DISTINCT pmf_no)as totalIPmf'),
@@ -334,8 +351,8 @@ class ReportController extends Controller
         if (isset($from_date) || isset($to_date)) {
             if (isset($group_by)) {
 
-                $reportQuery2 = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
-                    'dmf_mfno',
+                $reportQuery2 = GmsDmfDtls::join('gms_emp','gms_dmf_dtls.dmf_emp','=','gms_emp.emp_code')->join('gms_city','gms_dmf_dtls.dmf_dest','=','gms_city.city_code')->select(
+                    'dmf_mfno', 
                     DB::raw('concat("[",gms_dmf_dtls.dmf_date,",",gms_dmf_dtls.dmf_time,"]") As dateTime'),
                     'gms_dmf_dtls.dmf_emp',
                     'gms_emp.emp_name',
@@ -352,6 +369,7 @@ class ReportController extends Controller
                     'gms_dmf_dtls.dmf_remarks',
                     'gms_dmf_dtls.dmf_delv_remarks',
                     'gms_dmf_dtls.dmf_pod_status'
+                    
 
                 );
 
@@ -368,8 +386,8 @@ class ReportController extends Controller
                 $response['Status']['report'] = $reportQuery2->get();
             } else {
 
-                $reportQuery = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
-                    'dmf_mfno',
+                $reportQuery = GmsDmfDtls::join('gms_emp','gms_dmf_dtls.dmf_emp','=','gms_emp.emp_code')->join('gms_city','gms_dmf_dtls.dmf_dest','=','gms_city.city_code')->select(
+                    'dmf_mfno', 
                     DB::raw('concat("[",gms_dmf_dtls.dmf_mfdate,",",gms_dmf_dtls.dmf_mftime,"]") As dateTime'),
                     'gms_dmf_dtls.dmf_emp',
                     'gms_emp.emp_name',
@@ -386,6 +404,7 @@ class ReportController extends Controller
                     'gms_dmf_dtls.dmf_remarks',
                     'gms_dmf_dtls.dmf_delv_remarks',
                     'gms_dmf_dtls.dmf_pod_status'
+                    
 
                 );
 

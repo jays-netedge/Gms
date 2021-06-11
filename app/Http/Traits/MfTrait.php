@@ -59,7 +59,6 @@ trait MfTrait
         $query->Join('gms_customer', 'gms_customer.cust_code', '=', 'gms_customer_franchisee.cust_code');
         $query->where('gms_dmf_dtls.is_deleted', 0);
         $query->where('gms_dmf_dtls.dmf_mfno', $input['dmf_mfno']);
-        $query->where('gms_dmf_dtls.is_deleted', 0);
         $query->groupBy('gms_dmf_dtls.dmf_mfno');
         $result['fr_cust_details'] = $query->first();
         //cnno-details query//

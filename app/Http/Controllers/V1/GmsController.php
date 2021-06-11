@@ -324,11 +324,9 @@ class GmsController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-
         if ($request->hasfile('image')) {
             //getting the file from view
             $image = $request->file('image');
-
             //getting the extension of the file
             $image_ext = $image->getClientOriginalExtension();
             //changing the name of the file
@@ -339,7 +337,6 @@ class GmsController extends Controller
         }
         $addNews = new GmsNews($input);
         $addNews->save();
-
         return $this->successResponse(self::CODE_OK, "News Created Successfully!!", $addNews);
     }
 
@@ -383,7 +380,6 @@ class GmsController extends Controller
     {
         $sessionObject = session()->get('session_token');
         $admin = Admin::where('is_deleted', 0)->where('id', $sessionObject->admin_id)->first();
-
         $validator = Validator::make($this->request->all(), [
             'invoice_receipt' => 'required',
             'amount' => 'required',
@@ -396,7 +392,6 @@ class GmsController extends Controller
         $input['created_office'] = $admin->office_code;
         $addPayment = new GmsPayment($input);
         $addPayment->save();
-
         return $this->successResponse(self::CODE_OK, "Payment Added Successfully!!", $addPayment);
 
     }
@@ -1234,8 +1229,6 @@ class GmsController extends Controller
     }
 
 
-   
-
     public function advanceSearchIpmf(Request $request)
     {
         $from_date = $this->request->from_date;
@@ -1282,19 +1275,6 @@ class GmsController extends Controller
         // return $this->successResponse(self::CODE_OK, $query2);
     }
 
-    public function addOpmf()
-    {
-        $validator = Validator::make($this->request->all(), [
-            'pmf_cnno' => 'required',
-        ]);
-        if ($validator->fails()) {
-            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
-        }
-        $input = $this->request->all();
-        $addPayment = new GmsPmfDtls($input);
-        $addPayment->save();
-        return $this->successResponse(self::CODE_OK, "Opmf Added Successfully!!", $addPayment);
-    }
 
     public function advanceSearchOpmf(Request $request)
     {
@@ -1346,26 +1326,7 @@ class GmsController extends Controller
 
     }
 
-    public function viewDpmf()
-    {
-        $input = $this->request->all();
-        if (!$input) {
-            return GmsDmfDtls::join('gms_customer_franchisee', 'gms_customer_franchisee.cust_code', '=', 'gms_dmf_dtls.dmf_fr_code')->select(DB::raw('CONCAT(dmf_type,"(",cust_code,")" ,fran_cust_name) As CustType'), 'dmf_mfno', DB::raw('count(dmf_mfno) as totalcnno'), 'dmf_cnno_type', 'dmf_mfdate', 'dmf_mftime', DB::raw('SUM(dmf_wt) as totalwt'), DB::raw('count(dmf_pcs) as totalpcs'))->groupBy('cust_code', 'fran_cust_name', 'dmf_type', 'dmf_mfno', 'dmf_cnno_type', 'dmf_mfdate', 'dmf_mftime')->get();
-        } else {
-            $validator = Validator::make($this->request->all(), [
-                'mf_no' => 'required|exists:gms_dmf_dtls,dmf_mfno',
-            ]);
-            if ($validator->fails()) {
-                return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
-            }
-            $viewInvoice = GmsDmfDtls::where('dmf_mfno', $input['mf_no'])->select('dmf_cnno', 'dmf_ref_no', 'dmf_wt', 'dmf_pcs', 'dmf_pin', 'dmf_consgn_add', 'dl_pay_chash', 'dl_pay_dd', 'dmf_cnno_remarks', DB::raw("CONCAT('Name:',dl_name,' Mobile:',dl_phone) As RecNameAddress"), 'dmf_cn_status')->get();
-            if (!$viewInvoice) {
-                return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Mf_No Not Found');
-            } else {
-                return $this->successResponse(self::CODE_OK, "Cnno Details Show Successfully!!", $viewInvoice);
-            }
-        }
-    }
+    
 
     public function searchDpmf(Request $request)
     {
@@ -1684,11 +1645,11 @@ class GmsController extends Controller
         $office = GmsOffice::where('id', $admin->office_id)->first();
         $type = $this->request->type;
         if ($type == "BD") {
-            $emp = GmsEmp::select('emp_name as cust_name','emp_code as cust_code','emp_code'
+            $emp = GmsEmp::select('emp_name as cust_name', 'emp_code as cust_code', 'emp_code'
             )->where('emp_city', $office->office_city)->where('emp_rep_offtype', $office->office_type)->where('status', 'A')->where('is_deleted', 0);
             return $emp->paginate($request->per_page);
         } elseif ($type == "DA") {
-            $cust = GmsCustomer::select(DB::raw('concat(cust_name,"(",cust_code,")")As agent'),'cust_code'
+            $cust = GmsCustomer::select(DB::raw('concat(cust_name,"(",cust_code,")")As agent'), 'cust_code'
             )->where('cust_city', $office->office_city)->where('cust_type', 'DA')->where('is_deleted', 0);
             return $cust->paginate($request->per_page);
         } elseif ($type == "DF") {
@@ -1704,7 +1665,7 @@ class GmsController extends Controller
         }
     }
 
-    
+
 }
 
 

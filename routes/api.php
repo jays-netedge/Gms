@@ -119,7 +119,7 @@ Route::middleware([AdminMiddleware::class])->group(function () {
         });
 
         Route::get('/viewAllCityList', function (Request $request) {
-            $gmsCity = GmsCity::join('gms_state', 'gms_city.state_code', '=', 'gms_state.state_code')->select('gms_city.id','gms_state.state_name', 'gms_state.state_code', 'gms_city.city_code', 'gms_city.city_name', 'gms_city.metro');
+            $gmsCity = GmsCity::join('gms_state', 'gms_city.state_code', '=', 'gms_state.state_code')->select('gms_city.id', 'gms_state.state_name', 'gms_state.state_code', 'gms_city.city_code', 'gms_city.city_name', 'gms_city.metro');
             return $gmsCity->paginate($request->per_page);
 
         });
@@ -298,7 +298,7 @@ Route::middleware([AdminMiddleware::class])->group(function () {
         Route::post('/deleteDepartment', [AdminController::class, 'deleteDepartment']);
         Route::post('/editDepartment', [AdminController::class, 'editDepartment']);
         Route::get('/viewDepartmentList', [AdminController::class, 'viewDepartmentList']);
-        
+
     });
 
     //==========================================Designation=========================================================//
@@ -330,8 +330,9 @@ Route::middleware([AdminMiddleware::class])->group(function () {
         Route::post('/editAdminEmployee', [AdminController::class, 'editAdminEmployee']);
         Route::post('/editEmployeeAdminStatus', [AdminController::class, 'editEmployeeAdminStatus']);
         Route::post('/getEmpCode', [AdminController::class, 'getEmpCode']);
+        Route::post('/adminViewEmployeeId', [AdminController::class, 'adminViewEmployeeId']);
 
-        
+
     });
 
     //=========================================Login==========================================================//
@@ -460,7 +461,7 @@ Route::middleware([UserCheck::class])->group(function () {
     Route::post('/passwordUpdate', [AdminController::class, 'passwordUpdate']);
     Route::get('/totalCount', [DashBoardController::class, 'totalCount']);
     Route::post('/getAgent', [GmsController::class, 'getAgent']);
-   
+
 
     //=====================================Franchisee-Customer================================================//
     Route::prefix('FranchiseeCustomer/')->group(function () {
@@ -493,14 +494,14 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::get('/customerType', [CustomerController::class, 'customerType']);
         Route::get('/custCode', [CustomerController::class, 'custCode']);
         Route::post('/getCustByCustType', [CustomerController::class, 'getCustByCustType']);
-        Route::post('/getCusPinCode',[CustomerController::class, 'getCusPinCode']);
+        Route::post('/getCusPinCode', [CustomerController::class, 'getCusPinCode']);
         Route::post('/custReport', [CustomerController::class, 'custReport']);
         Route::match(['get', 'post'], '/viewGenerateRoBill', [AdminController::class, 'viewGenerateRoBill']);
         Route::get('/exportCustomer', [AdminController::class, 'exportCustomer']);
         Route::post('/viewAllRoColoader', [CustomerController::class, 'viewAllRoColoader']);
         Route::post('/deleteRoColoader', [CustomerController::class, 'deleteRoColoader']);
-        Route::post('/getColoaderDetails',[CustomerController::class, 'getColoaderDetails']);
-        Route::post('/editColoaderDetails',[CustomerController::class, 'editColoaderDetails']);
+        Route::post('/getColoaderDetails', [CustomerController::class, 'getColoaderDetails']);
+        Route::post('/editColoaderDetails', [CustomerController::class, 'editColoaderDetails']);
 
     });
 
@@ -551,7 +552,7 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::get('/cnnoBookingStockView', [CustomerController::class, 'cnnoBookingStockView']);
         Route::get('/onlyBoOffice', [BookController::class, 'onlyBoOffice']);
 
-        Route::get('/stockInRo',[BookController::class, 'stockInRo']);
+        Route::get('/stockInRo', [BookController::class, 'stockInRo']);
         Route::get('/stockSearchRo', [BookController::class, 'stockSearchRo']);
 
     });
@@ -569,10 +570,11 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/advanceSearch', [GmsController::class, 'advanceSearchIpmf']);
         Route::post('/advanceSearchInMaster', [MfController::class, 'advanceSearchInMaster']);
         Route::post('/empPmfDelete', [MfController::class, 'empPmfDelete']);
-        Route::post('/generateMfNo',[MfController::class, 'generateMfNo']);
-        Route::post('/generateOPMfNo',[MfController::class, 'generateOPMfNo']);
-         Route::post('/generateDmfNo',[MfController::class, 'generateDmfNo']);
-        Route::post('/getOutGoingMasterMFDetails',[MfController::class, 'getOutGoingMasterMFDetails']);
+        Route::post('/generateMfNo', [MfController::class, 'generateMfNo']);
+        Route::post('/generateOPMfNo', [MfController::class, 'generateOPMfNo']);
+        Route::post('/generateDmfNo', [MfController::class, 'generateDmfNo']);
+        Route::post('/getOutGoingMasterMFDetails', [MfController::class, 'getOutGoingMasterMFDetails']);
+        Route::post('/updateIpmf', [MfController::class, 'updateIpmf']);
         Route::match(['get', 'post'], '/viewIncomingMasterManifest', [MfController::class, 'viewIncomingMasterManifest']);
         Route::get('/viewAllExr', function (Request $request) {
             return GmsExrDtls::where('is_deleted', 0)->get(['exr_cnno', 'exr_date', 'exr_time', 'exr_origin_branch', 'exr_receieved_emp']);
@@ -599,6 +601,8 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/coloaderOrderAdd', [GmsController::class, 'coloaderOrderAdd']);
         Route::match(['get', 'post'], '/viewColoadersDetails', [GmsController::class, 'viewColoadersDetails']);
         Route::get('/advanceSearchColoader', [GmsController::class, 'advanceSearchColoader']);
+        Route::post('/updateOpmf', [MfController::class, 'updateOpmf']);
+        Route::post('/updateOmf', [MfController::class, 'updateOmf']);
 
 
     });
@@ -611,16 +615,17 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/viewDetailsPrint', [MfController::class, 'viewDetailsPrint']);
         Route::post('/searchDpmf', [GmsController::class, 'searchDpmf']);
         Route::post('/deleteDmfCnno', [MfController::class, 'deleteDmfCnno']);
-        Route::post('/getDmfCnnoDetails',[MfController::class, 'getDmfCnnoDetails']);
+        Route::post('/getDmfCnnoDetails', [MfController::class, 'getDmfCnnoDetails']);
 
         //=======================================Delivery Update===========================================================//
         Route::match(['get', 'post'], '/viewAllDeliveryUpdate', [MfController::class, 'viewAllDeliveryUpdate']);
         Route::post('/viewDeliveryDetails', [MfController::class, 'viewDeliveryDetails']);
         Route::get('/advancedSearchDpmfUpdate', [GmsController::class, 'advancedSearchDpmfUpdate']);
         Route::post('/addDeliveryMf', [MfController::class, 'addDeliveryMf']);
-        Route::post('/getDmfDetails',[MfController::class, 'getDmfDetails']);
+        Route::post('/getDmfDetails', [MfController::class, 'getDmfDetails']);
         Route::post('/addDeliveryUpdate', [MfController::class, 'addDeliveryUpdate']);
-        Route::get('/nonDeliveryDropDown',[MfController::class, 'nonDeliveryDropDown']);
+        Route::post('/addDmfRemarkUpdate', [MfController::class, 'addDmfRemarkUpdate']);
+        Route::get('/nonDeliveryDropDown', [MfController::class, 'nonDeliveryDropDown']);
 
         //==============================================================================================================//
 
@@ -663,7 +668,7 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/addCoMail', [MfController::class, 'addCoMail']);
         Route::match(['get', 'post'], '/viewAllCoMailList', [MfController::class, 'viewAllCoMailList']);
         Route::post('/editManifestDate', [InvoiceController::class, 'editManifestDate']);
-        Route::post('/loadAlert' ,[MfController::class, 'loadAlert']);
+        Route::post('/loadAlert', [MfController::class, 'loadAlert']);
     });
 
     //=============================================Employee===================================================//
@@ -685,9 +690,9 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/addInvoice', [InvoiceController::class, 'addInvoice']);
         Route::post('/viewInvoice', [InvoiceController::class, 'viewInvoice']);
         Route::get('/viewSearchInvoice', [InvoiceController::class, 'viewSearchInvoice']);
-        Route::post('/viewInvoiceScPrint',[InvoiceController::class, 'viewInvoiceScPrint']);
-        Route::post('/viewAdditional',[InvoiceController::class, 'viewAdditional']);
-        Route::post('/viewSfAdditional',[InvoiceController::class, 'viewSfAdditional']);
+        Route::post('/viewInvoiceScPrint', [InvoiceController::class, 'viewInvoiceScPrint']);
+        Route::post('/viewAdditional', [InvoiceController::class, 'viewAdditional']);
+        Route::post('/viewSfAdditional', [InvoiceController::class, 'viewSfAdditional']);
         // Route::post('/viewAllInvoice', [InvoiceController::class, 'viewAllInvoice']);
         Route::post('/deleteInvoice', [InvoiceController::class, 'deleteInvoice']);
         Route::post('/viewInvoiceSf', [InvoiceController::class, 'viewInvoiceSf']);
@@ -722,6 +727,7 @@ Route::middleware([UserCheck::class])->group(function () {
         //=========================================================================================================//
 
         Route::post('/bookingReport', [ReportController::class, 'bookingReport']);
+        Route::get('/bookingReportExport', [ReportController::class, 'bookingReportExport']);
         Route::post('/codTopayReport', [ReportController::class, 'codTopayReport']);
         Route::post('/outGoingReport', [ReportController::class, 'outGoingReport']);
         Route::post('/inComingReport', [ReportController::class, 'inComingReport']);
@@ -774,7 +780,6 @@ Route::get('/getAllEpodGen', function (Request $request) {
 //============================================BoBookTransfer==========================================//
 
 
-
 Route::get('/viewAllBookBoTransfer', function (Request $request) {
     $gmsAllBookBoTransfer = GmsBookBoTransfer::where('is_deleted', 0)->select('iss_type', 'office_ro', 'cnno_start', 'cnno_end', 'description', 'entry_date', 'status')->orderBy('id', 'DESC');
     return $gmsAllBookBoTransfer->paginate($request->per_page);
@@ -807,18 +812,14 @@ Route::get('/viewAllBookBlock', function (Request $request) {
 });
 
 
-
-
 //================================================Manifest==========================================//
 
 //================================================Manifest==========================================//
 
-    Route::get('/viewAllManifest', function (Request $request) {
-        $gmsAllManifest = GmsMfDtls::select('mf_type', 'mf_emp_code', 'mf_dest_type', 'mf_wt', 'mf_pcs', 'mf_entry_date', 'mf_cd_no')->where('is_deleted', 0);
-        return $gmsAllManifest->paginate($request->per_page);
-    });
-
-   
+Route::get('/viewAllManifest', function (Request $request) {
+    $gmsAllManifest = GmsMfDtls::select('mf_type', 'mf_emp_code', 'mf_dest_type', 'mf_wt', 'mf_pcs', 'mf_entry_date', 'mf_cd_no')->where('is_deleted', 0);
+    return $gmsAllManifest->paginate($request->per_page);
+});
 
 
 Route::post('/viewAllRtoDetails', [InvoiceController::class, 'viewAllRtoDetails']);
@@ -872,9 +873,7 @@ Route::get('/viewAllAmdro', function (Request $request) {
 
 //       Ekta api           //
 
-Route::post('/addOpmf', [GmsController::class, 'addOpmf']);
 
-Route::match(['get', 'post'], '/viewDpmf', [GmsController::class, 'viewDpmf']);
 Route::get('/viewAllCnnoStock', function () {
     return GmsCnnoStock::all()->paginate(5);
 });
