@@ -126,6 +126,25 @@ Route::middleware([AdminMiddleware::class])->group(function () {
 
     });
 
+    //========================================Export===================================================//
+    Route::prefix('export/')->group(function () {
+        //=================================================================================================//
+        Route::get('/exportCountry', [AdminController::class, 'exportCountry']);
+        Route::get('/exportState', [AdminController::class, 'exportState']);
+        Route::get('/exportCity', [AdminController::class, 'exportCity']);
+        Route::get('/exportPincode', [AdminController::class, 'exportPincode']);
+        Route::get('/exportOffice', [AdminController::class, 'exportOffice']);
+        Route::get('/exportReason', [AdminController::class, 'exportReason']);
+        Route::get('/exportAdminCustomer', [AdminController::class, 'exportAdminCustomer']);
+
+        // Route::post('/deleteOffice', [AdminController::class, 'deleteOffice']);
+        // Route::post('/editOfficeStatus', [AdminController::class, 'editOfficeStatus']);
+        // Route::post('/editoffice', [AdminController::class, 'editoffice']);
+        // Route::get('/adminGenerateRoTypeList', [AdminController::class, 'adminGenerateRoTypeList']);
+        // Route::post('/getOfficeUnder', [AdminController::class, 'getOfficeUnder']);
+
+    });
+
     //========================================Office===================================================//
     Route::prefix('Office/')->group(function () {
         //=================================================================================================//
@@ -135,6 +154,8 @@ Route::middleware([AdminMiddleware::class])->group(function () {
         Route::post('/editoffice', [AdminController::class, 'editoffice']);
         Route::get('/adminGenerateRoTypeList', [AdminController::class, 'adminGenerateRoTypeList']);
         Route::post('/getOfficeUnder', [AdminController::class, 'getOfficeUnder']);
+        Route::post('/getOfficeCode', [AdminController::class, 'getOfficeCode']);
+        Route::post('/adminViewOfficeId', [AdminController::class, 'adminViewOfficeId']);
 
     });
 
@@ -161,6 +182,7 @@ Route::middleware([AdminMiddleware::class])->group(function () {
     Route::prefix('Customer/')->group(function () {
         //=======================================================================================================//
         Route::get('/viewAllCustomerList', [AdminController::class, 'viewAllCustomerList']);
+        Route::post('/adminViewCustomerId', [AdminController::class, 'adminViewCustomerId']);
         //Route::post('/deleteCustomer',[AdminController::class, 'deleteReason']);
         Route::post('/editCustomerApprovedStatus', [AdminController::class, 'editCustomerApprovedStatus']);
         Route::post('/searchAdminCustomer', [AdminController::class, 'searchAdminCustomer']);
@@ -269,8 +291,6 @@ Route::middleware([AdminMiddleware::class])->group(function () {
     Route::prefix('CnnoBookingStock')->group(function () {
         //======================================================================================================//
         Route::get('/viewCnnoBookingStock', [AdminController::class, 'viewCnnoBookingStock']);
-
-
     });
 
     Route::post('/AdminAdvanceSearchIpmf', [AdminController::class, 'AdminAdvanceSearchIpmf']);
@@ -331,6 +351,7 @@ Route::middleware([AdminMiddleware::class])->group(function () {
         Route::post('/editEmployeeAdminStatus', [AdminController::class, 'editEmployeeAdminStatus']);
         Route::post('/getEmpCode', [AdminController::class, 'getEmpCode']);
         Route::post('/adminViewEmployeeId', [AdminController::class, 'adminViewEmployeeId']);
+        Route::post('/editAdminEmployeePhoto', [AdminController::class, 'editAdminEmployeePhoto']);
 
 
     });
@@ -451,7 +472,7 @@ Route::middleware([AdminMiddleware::class])->group(function () {
 //=========//===========//===========//==========//============//==========//===========//============//====//====//
 
 
-//=======================================BO/EMP ROUTES LIST=====================================================//
+//=======================================BO/EMP/RO ROUTES LIST=====================================================//
 
 Route::middleware([UserCheck::class])->group(function () {
     Route::post('/getMyOfficeProfile', [AdminController::class, 'getMyOfficeProfile']);
@@ -475,7 +496,6 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/viewAllFranchisee', [CustomerController::class, 'viewAllFranchisee']);
         Route::post('/viewDetailsFraCus', [CustomerController::class, 'viewDetailsFraCus']);
 
-
     });
     //===========================================City========================================================//
     Route::get('/viewAllCity', [GmsController::class, 'viewAllCity']);
@@ -485,7 +505,6 @@ Route::middleware([UserCheck::class])->group(function () {
     Route::prefix('Customer/')->group(function () {
         //======================================Customer-Routes==============================================//
         Route::post('/addCustomer', [CustomerController::class, 'addCustomer']);
-        Route::post('/addRoCustomer2', [CustomerController::class, 'addRoCustomer2']);
         Route::post('/editCustomer', [CustomerController::class, 'editCustomer']);
         Route::post('/deleteCustomer', [CustomerController::class, 'deleteCustomer']);
         Route::post('/viewCustomer', [CustomerController::class, 'viewCustomer']);
@@ -498,10 +517,15 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/custReport', [CustomerController::class, 'custReport']);
         Route::match(['get', 'post'], '/viewGenerateRoBill', [AdminController::class, 'viewGenerateRoBill']);
         Route::get('/exportCustomer', [AdminController::class, 'exportCustomer']);
-        Route::post('/viewAllRoColoader', [CustomerController::class, 'viewAllRoColoader']);
-        Route::post('/deleteRoColoader', [CustomerController::class, 'deleteRoColoader']);
+
+        Route::post('/viewAllRoColoader', [CustomerController::class, 'viewAllRoColoader']); ///Ro
+        Route::post('/addRoCustomer', [CustomerController::class, 'addRoCustomer']); // Ro
+        Route::post('/customerTransfer', [CustomerController::class, 'customerTransfer']); //Ro
+        Route::get('/viewCusTransfer', [CustomerController::class, 'viewCusTransfer']); //Ro
+        Route::post('/deleteRoColoader', [CustomerController::class, 'deleteRoColoader']); //Ro
         Route::post('/getColoaderDetails', [CustomerController::class, 'getColoaderDetails']);
         Route::post('/editColoaderDetails', [CustomerController::class, 'editColoaderDetails']);
+        Route::post('/addColoader', [CustomerController::class, 'addColoader']); //Ro
 
     });
 
@@ -545,15 +569,50 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::get('/viewBookCustRoReturn', [BookController::class, 'viewBookCustRoReturn']);
 
         Route::post('/addBookCustRoReturn', [BookController::class, 'addBookCustRoReturn']);
-
         Route::post('/editCusBookIssue', [BookController::class, 'editCusBookIssue']);
         Route::get('/viewAllStockIn', [BookController::class, 'viewAllStockIn']);
         Route::get('/viewAllCnnoCustlist', [BookController::class, 'viewAllCnnoCustlist']);
         Route::get('/cnnoBookingStockView', [CustomerController::class, 'cnnoBookingStockView']);
         Route::get('/onlyBoOffice', [BookController::class, 'onlyBoOffice']);
 
-        Route::get('/stockInRo', [BookController::class, 'stockInRo']);
-        Route::get('/stockSearchRo', [BookController::class, 'stockSearchRo']);
+        Route::get('/viewAllStockInRO', [BookController::class, 'viewAllStockInRO']); //RO
+        Route::get('/stockSearchRo', [BookController::class, 'stockSearchRo']); //RO
+        Route::get('/viewBookIssueRO', [BookController::class, 'viewBookIssueRO']); //RO
+        Route::post('/getBookIssueRO', [BookController::class, 'getBookIssueRO']); //RO
+        Route::get('/BookIssueConsumedRO', [BookController::class, 'BookIssueConsumedRO']); //RO
+        Route::get('/RadioBookIssueListRO', [BookController::class, 'RadioBookIssueListRO']); //RO
+        Route::post('/BookIssueCustByCustTypeRO', [BookController::class, 'BookIssueCustByCustTypeRO']); //RO
+        Route::post('/addBookIssueRO', [BookController::class, 'addBookIssueRO']); //RO
+        Route::post('/bookIssueOfficeListRO', [BookController::class, 'bookIssueOfficeListRO']);//RO
+        Route::post('/bookIssueCnnoListRO', [BookController::class, 'bookIssueCnnoListRO']);//RO
+        Route::get('/getbookIssueSTN', [BookController::class, 'getbookIssueSTN']);//RO
+        Route::get('/viewOutTransferRO', [BookController::class, 'viewOutTransferRO']); //RO
+        Route::get('/viewInTransferRO', [BookController::class, 'viewInTransferRO']); //RO
+        Route::get('/getRoSinDropDown', [BookController::class, 'getRoSinDropDown']);
+        Route::post('/getBoSinList', [BookController::class, 'getBoSinList']); //RO
+        Route::post('/updateBoSin', [BookController::class, 'updateBoSin']); //RO
+        Route::get('/officeListRO', [BookController::class, 'officeListRO']); //RO
+        Route::post('/addBookTransferRO', [BookController::class, 'addBookTransferRO']); //RO
+        Route::post('/updateTransferStatus', [BookController::class, 'updateTransferStatus']); //RO
+        Route::get('/viewBookReturRO', [BookController::class, 'viewBookReturRO']); //RO
+        Route::post('/deleteTransfer', [BookController::class, 'deleteTransfer']); //RO
+        Route::post('/addBookReturRO', [BookController::class, 'addBookReturRO']); //RO
+        Route::get('/viewCustBookReturnRO', [BookController::class, 'viewCustBookReturnRO']); //RO
+        Route::post('/updateCustBookReturnStatus', [BookController::class, 'updateCustBookReturnStatus']); //RO
+        Route::get('/getCustSinDropDownRo', [BookController::class, 'getCustSinDropDownRo']); //RO
+        Route::post('/getCustSinListRo', [BookController::class, 'getCustSinListRo']); //RO
+        Route::post('/CustCnnoStockListRo', [BookController::class, 'CustCnnoStockListRo']); //RO
+        Route::post('/getCustSinRangeRo', [BookController::class, 'getCustSinRangeRo']); //RO
+        Route::post('/addBookReturnCustRo', [BookController::class, 'addBookReturnCustRo']); //RO
+        Route::get('/viewBookBOTransferRO', [BookController::class, 'viewBookBOTransferRO']); //RO
+        Route::post('/updateBookBOTransferStatus', [BookController::class, 'updateBookBOTransferStatus']); //RO
+        Route::post('/deleteBookBOTransfer', [BookController::class, 'deleteBookBOTransfer']); //RO
+        Route::get('/viewBookBOReturnRO', [BookController::class, 'viewBookBOReturnRO']); //RO
+        Route::get('/viewBookBlockRO', [BookController::class, 'viewBookBlockRO']); //RO
+        Route::post('/viewBookBlockDetailsRo', [BookController::class, 'viewBookBlockDetailsRo']);//RO
+        Route::post('/updateBookBlockStatus', [BookController::class, 'updateBookBlockStatus']);//Ro
+        Route::post('/deleteBookBlockRO', [BookController::class, 'deleteBookBlockRO']);//RO
+        Route::post('/addBookBlockRO', [BookController::class, 'addBookBlockRO']);//RO
 
     });
 
@@ -579,7 +638,6 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::get('/viewAllExr', function (Request $request) {
             return GmsExrDtls::where('is_deleted', 0)->get(['exr_cnno', 'exr_date', 'exr_time', 'exr_origin_branch', 'exr_receieved_emp']);
 
-
         });
     });
 
@@ -604,7 +662,6 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/updateOpmf', [MfController::class, 'updateOpmf']);
         Route::post('/updateOmf', [MfController::class, 'updateOmf']);
 
-
     });
 
     //=======================================Delivery-Details====================================================//
@@ -626,7 +683,6 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/addDeliveryUpdate', [MfController::class, 'addDeliveryUpdate']);
         Route::post('/addDmfRemarkUpdate', [MfController::class, 'addDmfRemarkUpdate']);
         Route::get('/nonDeliveryDropDown', [MfController::class, 'nonDeliveryDropDown']);
-
         //==============================================================================================================//
 
     });
@@ -643,7 +699,9 @@ Route::middleware([UserCheck::class])->group(function () {
     Route::prefix('/searchPincode')->group(function () {
         //===============================================================================================================//
         Route::post('/getCityPincode', [GmsController::class, 'getCityPincode']);
+        Route::get('/getAllPinCodeToBranch',[GmsController::class, 'getAllPinCodeToBranch']);
         Route::post('assignPinCodeToBranch', [GmsController::class, 'assignPinCodeToBranch']);
+        Route::get('getPincodeTotalCount',[GmsController::class, 'getPincodeTotalCount']);
 
     });
     //============================================Payment======================================================//
@@ -669,6 +727,7 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::match(['get', 'post'], '/viewAllCoMailList', [MfController::class, 'viewAllCoMailList']);
         Route::post('/editManifestDate', [InvoiceController::class, 'editManifestDate']);
         Route::post('/loadAlert', [MfController::class, 'loadAlert']);
+
     });
 
     //=============================================Employee===================================================//
@@ -680,7 +739,7 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/viewAllEmployee', [EmpController::class, 'viewAllEmployee']);
         Route::get('/empDetailsExport', [EmpController::class, 'empDetailsExport']);
         Route::get('/empDetailsPdfExport', [EmpController::class, 'empDetailsPdfExport']);
-
+        Route::post('/viewAllEmployeeRo', [EmpController::class, 'viewAllEmployeeRo']);
 
     });
 
@@ -706,9 +765,29 @@ Route::middleware([UserCheck::class])->group(function () {
             $gmsAllCusInvoice = GmsInvoiceCust::where('is_deleted', 0)->orderBy('id', 'DESC');
             return $gmsAllCusInvoice->paginate($request->per_page);
         });
-
     });
 
+    //============================================RateCard===========================================//
+    Route::prefix('RateCard/')->group(function () {
+        //============================================RateCard===========================================//
+        Route::post('/addRateCard', [RateController::class, 'addRateCard']);
+        Route::post('/addRateMaster', [RateController::class, 'addRateMaster']);
+        Route::get('/viewRateCard', [RateController::class, 'viewRateCard']);
+        Route::post('/addDeliveryRateCard', [RateController::class, 'addDeliveryRateCard']); //RO
+        Route::post('/editDeliveryRateCard', [RateController::class, 'editDeliveryRateCard']); //RO
+        Route::get('/deliveryRateCard', [RateController::class, 'deliveryRateCard']);//RO
+        Route::post('/deleteDeliveryRateCard', [RateController::class, 'deleteDeliveryRateCard']);//RO
+        Route::post('/addBillingDiscountRateCard', [RateController::class, 'addBillingDiscountRateCard']); //RO
+        Route::get('/billingDiscountRateCard', [RateController::class, 'billingDiscountRateCard']); //RO
+        Route::match(['get', 'post'], '/assignEmp', [RateController::class, 'assignEmp']); //RO
+        Route::post('addAssignFranBoSf', [RateController::class, 'addAssignFranBoSf']); //RO
+        Route::get('/viewAssignFranBoSf', [RateController::class, 'viewAssignFranBoSf']); //RO
+        Route::get('/getCustomerAssign', [RateController::class, 'getCustomerAssign']); //RO
+        Route::get('/discountRateDropDown', [RateController::class, 'discountRateDropDown']); //RO
+        Route::post('/updateAssignCustomer', [RateController::class, 'updateAssignCustomer']);//RO
+        Route::post('/addDiscount', [GmsController::class, 'addDiscount']);
+
+    });
     //============================================Alert=======================================================//
     Route::prefix('Alert/')->group(function () {
         //========================================================================================================//
@@ -728,6 +807,8 @@ Route::middleware([UserCheck::class])->group(function () {
 
         Route::post('/bookingReport', [ReportController::class, 'bookingReport']);
         Route::get('/bookingReportExport', [ReportController::class, 'bookingReportExport']);
+        Route::get('/bookingStats', [ReportController::class, 'bookingStats']);
+        Route::post('/boWiseBookingReport', [ReportController::class, 'boWiseBookingReport']);
         Route::post('/codTopayReport', [ReportController::class, 'codTopayReport']);
         Route::post('/outGoingReport', [ReportController::class, 'outGoingReport']);
         Route::post('/inComingReport', [ReportController::class, 'inComingReport']);
@@ -740,8 +821,16 @@ Route::middleware([UserCheck::class])->group(function () {
         Route::post('/heldUpBeta', [ReportController::class, 'heldUpBeta']);
         Route::match(['get', 'post'], '/relationship', [ReportController::class, 'relationship']);
         Route::match(['get', 'post'], '/relationshipOffice', [ReportController::class, 'relationshipOffice']);
+        Route::get('/drsBoWiseReports', [ReportController::class, 'drsBoWiseReports']); //RO
+        Route::get('/bookingAnalyticRep', [ReportController::class, 'bookingAnalyticRep']); //RO
+        Route::get('/deliveryAnalyticRep', [ReportController::class, 'deliveryAnalyticRep']); //RO
     });
 
+    //=============================================Imports====================================================//
+        Route::prefix('Imports/')->group(function () {
+    //===========================================================================================================//
+           Route::post('/xlUpdate', [RateController::class, 'xlUpdate']);
+    });
     //===============================================Complaints=============================================//
     Route::prefix('Complaints/')->group(function () {
         //===================================================================================================//
@@ -761,17 +850,7 @@ Route::middleware([UserCheck::class])->group(function () {
 //============================================================================================================//
 //============================================================================================================//
 
-
-//================================================RoBook=============================================//
-
-Route::post('/viewRoBook', [BookController::class, 'viewRoBook']);
-Route::post('/deleteRoBook', [BookController::class, 'deleteRoBook']);
-Route::get('/viewAllRoBook', function (Request $request) {
-    $gmsAllRoBook = GmsBookRoIssue::where('is_deleted', 0);
-    return $gmsAllRoBook->paginate($request->per_page);
-});
 //===============================================EpodGen=============================================//
-
 
 Route::get('/getAllEpodGen', function (Request $request) {
     $gmsAllEpodGen = GmsBookEpodGenerate::where('is_deleted', 0);
@@ -796,56 +875,19 @@ Route::get('/viewAllBoBookIssue', function (Request $request) {
 });
 //==============================================RoBookIssue============================================//
 
-
 Route::get('/viewAllRoTransfer', function (Request $request) {
     $gmsAllRoTransfer = GmsBookRoTransfer::select('tranfer_type', 'description', 'cnno_start', 'cnno_end', 'entry_date', 'recieved_date')->where('is_deleted', 0);
     return $gmsAllRoTransfer->paginate($request->per_page);
 });
-
-//================================================BookBlock==============================================//
-Route::post('/addBookBlock', [GmsController::class, 'addBookBlock']);
-Route::post('/viewBookBlock', [GmsController::class, 'viewBookBlock']);
-Route::post('/deleteBlockBook', [GmsController::class, 'deleteBlockBook']);
-Route::get('/viewAllBookBlock', function (Request $request) {
-    $gmsAllBookBlock = GmsBookBlock::where('is_deleted', 0);
-    return $gmsAllBookBlock->paginate($request->per_page);
-});
-
-
-//================================================Manifest==========================================//
-
-//================================================Manifest==========================================//
 
 Route::get('/viewAllManifest', function (Request $request) {
     $gmsAllManifest = GmsMfDtls::select('mf_type', 'mf_emp_code', 'mf_dest_type', 'mf_wt', 'mf_pcs', 'mf_entry_date', 'mf_cd_no')->where('is_deleted', 0);
     return $gmsAllManifest->paginate($request->per_page);
 });
 
-
 Route::post('/viewAllRtoDetails', [InvoiceController::class, 'viewAllRtoDetails']);
-
-
-//============================================RateCard===========================================//
-Route::prefix('RateCard/')->group(function () {
-//============================================RateCard===========================================//
-    Route::post('/addRateCard', [RateController::class, 'addRateCard']);
-    Route::post('/viewRateCard', [RateController::class, 'viewRateCard']);
-    Route::post('/getRateCard', [RateController::class, 'getRateCard']);
-});
-
-//==============================================RateCode===============================================//
-Route::prefix('RateCode/')->group(function () {
-//==============================================RateCode===============================================//
-    Route::post('/addRateCode', [RateController::class, 'addRateCode']);
-    Route::post('/getRateCode', [RateController::class, 'getRateCode']);
-    Route::get('/getAllRateCode', function () {
-        return GmsRateCode::where('is_deleted', 0)->paginate(5);
-    });
-});
-
 //===================================================================================================//
 Route::post('/addServiceFdc', [RateController::class, 'addServiceFdc']);
-
 //========================================================================================================//
 Route::post('/addNews', [GmsController::class, 'addNews']);
 //=======================================================================================================//
@@ -855,24 +897,16 @@ Route::get('/cnnoAllViewBlock', function (Request $request) {
     $gmsAllViewBlock = GmsCnnoStock::all();
     return $gmsAllViewBlock->paginate($request->per_page);
 });
-
-Route::post('/addDiscount', [GmsController::class, 'addDiscount']);
-
 //==============================================Amdro==================================================//
 Route::post('/viewAmdro', [GmsController::class, 'viewAmdro']);
 Route::post('/addMasterAmdro', [GmsController::class, 'addMasterAmdro']);
 Route::post('/deleteMasterAmdro', [GmsController::class, 'deleteMasterAmdro']);
 Route::post('/statusAmdro', [GmsController::class, 'statusAmdro']);
-
-
 Route::get('/viewAllAmdro', function (Request $request) {
     $gmsAllAmdro = GmsRateMasterAmdro::where('is_deleted', 0);
     return $gmsAllAmdro->paginate($request->per_page);
 });
-
-
 //       Ekta api           //
-
 
 Route::get('/viewAllCnnoStock', function () {
     return GmsCnnoStock::all()->paginate(5);

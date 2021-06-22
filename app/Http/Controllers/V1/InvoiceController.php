@@ -31,7 +31,6 @@ class InvoiceController extends Controller
         $this->request = $request;
     }
 
-
     /**
      * @OA\Post(
      * path="/addInvoice",
@@ -389,7 +388,6 @@ class InvoiceController extends Controller
         return $this->view_invoiceSf();
     }
 
-   
 
     public function editManifestDate(Request $request)
     {
@@ -675,7 +673,6 @@ class InvoiceController extends Controller
     public function viewAllInvoice(Request $request)
     {
         $viewAllInvoice = GmsInvoice::where('is_deleted', 0)->select('id', 'invoice_no', 'invoice_date', 'cust_type', 'customer_code', 'fr_fuel_amount', 'fr_sub_total', 'fr_grand_total');
-
         if ($request->has('month')) {
             $month = $request->month;
             $viewAllInvoice->where('month', $month);
@@ -697,11 +694,9 @@ class InvoiceController extends Controller
 
     public function viewSalesRegister(Request $request)
     {
-
         $year = $request->year;
         $month = $request->month;
         $cust_type = $request->cust_type;
-
         $viewReportOfSalesReg = GmsInvoice::select('gms_invoice.fr_invoice_no',
             'gms_invoice.invoice_date',
             'gms_invoice.customer_code',
@@ -716,11 +711,7 @@ class InvoiceController extends Controller
             'gms_invoice.fr_grand_total'
 
         );
-
-
         $viewSalesRegister = GmsInvoice::select('cust_type', DB::raw('count(cust_type) as NoOfCustomer'), DB::raw('count(invoice_no) as NoOfInvoice'));
-
-
         if ($request->has('year')) {
             $viewSalesRegister->where('gms_invoice.year', $year);
             $viewReportOfSalesReg->where('gms_invoice.year', $year);
@@ -733,7 +724,6 @@ class InvoiceController extends Controller
             $viewSalesRegister->where('gms_invoice.cust_type', $cust_type);
             $viewReportOfSalesReg->where('gms_invoice.cust_type', $cust_type);
         }
-
         $viewSalesRegister->groupBy('gms_invoice.cust_type');
 
         $response['Count'] = $viewSalesRegister->get();
@@ -1035,7 +1025,7 @@ class InvoiceController extends Controller
             $viewbill->where('customer_code', $customer_code);
         }
 
-      //  $viewbill->orderBy('id', 'DESC');
+        //  $viewbill->orderBy('id', 'DESC');
         return $viewbill->paginate($request->per_page);
     }
 
@@ -1062,7 +1052,6 @@ class InvoiceController extends Controller
     {
         $input = $this->request->all();
         $viewSfDetails = GmsInvoice::join('gms_invoice_sf', 'gms_invoice.invoice_no', '=', 'gms_invoice_sf.invoice_no')->where('gms_invoice_sf.customer_code', 'gms_invoice_sf.customer_type', 'gms_invoice_sf.reg_booking', 'gms_invoice_sf.reg_amt', 'gms_invoice_sf.direct_booking', 'gms_invoice_sf.direct_amt', 'gms_invoice_sf.total_cnno', 'total_amt')->where('gms_invoice_sf.invoice_no', $input['invoice_no'])->first();
-
         return $viewSfDetails;
     }
 
@@ -1090,6 +1079,4 @@ class InvoiceController extends Controller
             return 'Check Cnno No';
         }
     }
-
-
 }

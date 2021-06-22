@@ -36,10 +36,12 @@ class ReportController extends Controller
     {
         $this->request = $request;
     }
-    
-    public function bookingReportExport(){
+
+    public function bookingReportExport()
+    {
         return Excel::store(new bookingReportExport, 'booking.xlsx');
     }
+
     /**
      * @param Request $request
      * @return array
@@ -57,108 +59,429 @@ class ReportController extends Controller
         $book_cnno = $this->request->book_cnno;
         $book_pin = $this->request->book_pin;
 
-        
-        $query = GmsBookingDtls::
-        leftJoin('gms_customer as book_customer', 'book_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')
-            ->leftJoin('gms_customer as book_fr_customer', 'book_fr_customer.cust_code', '=', 'gms_booking_dtls.book_fr_cust_code')
-            ->leftJoin('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')
-            ->select(
-                'gms_booking_dtls.id',
-                'gms_booking_dtls.book_br_code',
-                'gms_booking_dtls.book_emp_code',
-                'gms_booking_dtls.book_cust_type',
-                'gms_booking_dtls.book_cust_code',
-                'book_customer.cust_name',
-                'gms_booking_dtls.book_fr_cust_code',
-                'book_fr_customer.cust_name',
-                'gms_booking_dtls.book_mfno',
-                'gms_booking_dtls.book_mfrefno',
-                'gms_booking_dtls.book_mfdate',
-                'gms_booking_dtls.book_mftime',
-                'gms_booking_dtls.book_refno',
-                'gms_booking_dtls.book_pin',
-                'gms_booking_dtls.book_org',
-                'gms_booking_dtls.book_dest',
-                'gms_booking_dtls.book_cons_addr',
-                'gms_booking_dtls.book_cn_dtl',
-                'gms_booking_dtls.book_product_type',
-                'gms_booking_dtls.book_mode',
-                'gms_booking_dtls.book_doc',
-                'gms_booking_dtls.book_weight',
-                'gms_booking_dtls.book_vol_weight',
-                DB::raw("CONCAT('gms_booking_dtls.book_vol_lenght,book_vol_height,book_vol_breight') AS book_vol_weight_LBH"),
-                // 'gms_booking_dtls.book_vol_lenght',
-                // 'gms_booking_dtls.book_vol_height',
-                // 'gms_booking_dtls.book_vol_breight',
-                'gms_booking_dtls.book_pcs',
-                'gms_booking_dtls.book_remarks',
-                'gms_booking_dtls.book_service_type',
-                'gms_booking_dtls.book_current_status',
-                'gms_booking_dtls.book_pod_scan',
-                'gms_booking_dtls.book_billamt',
-                'gms_booking_dtls.book_total_amount'
-            );
 
-         $query2 = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')->join('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')->select(
-        DB::raw('count(book_cnno) as totalcnno'),
-        DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 0 THEN 1 END)) As notDelivered'),
-        DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 1 THEN 0 END)) As delivered'),
+        // $query = GmsBookingDtls::
+        // leftJoin('gms_customer as book_customer', 'book_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')
+        //     ->leftJoin('gms_customer as book_fr_customer', 'book_fr_customer.cust_code', '=', 'gms_booking_dtls.book_fr_cust_code')
+        //     ->leftJoin('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')
+        //     ->select(
+        //         'gms_booking_dtls.id',
+        //         'gms_booking_dtls.book_br_code',
+        //         'gms_booking_dtls.book_emp_code',
+        //         'gms_booking_dtls.book_cust_type',
+        //         'gms_booking_dtls.book_cust_code',
+        //         'book_customer.cust_name',
+        //         'gms_booking_dtls.book_fr_cust_code',
+        //         'book_fr_customer.cust_name',
+        //         'gms_booking_dtls.book_mfno',
+        //         'gms_booking_dtls.book_mfrefno',
+        //         'gms_booking_dtls.book_mfdate',
+        //         'gms_booking_dtls.book_mftime',
+        //         'gms_booking_dtls.book_refno',
+        //         'gms_booking_dtls.book_pin',
+        //         'gms_booking_dtls.book_org',
+        //         'gms_booking_dtls.book_dest',
+        //         'gms_booking_dtls.book_cons_addr',
+        //         'gms_booking_dtls.book_cn_dtl',
+        //         'gms_booking_dtls.book_product_type',
+        //         'gms_booking_dtls.book_mode',
+        //         'gms_booking_dtls.book_doc',
+        //         'gms_booking_dtls.book_weight',
+        //         'gms_booking_dtls.book_vol_weight',
+        //         DB::raw("CONCAT('gms_booking_dtls.book_vol_lenght,book_vol_height,book_vol_breight') AS book_vol_weight_LBH"),
+        //         // 'gms_booking_dtls.book_vol_lenght',
+        //         // 'gms_booking_dtls.book_vol_height',
+        //         // 'gms_booking_dtls.book_vol_breight',
+        //         'gms_booking_dtls.book_pcs',
+        //         'gms_booking_dtls.book_remarks',
+        //         'gms_booking_dtls.book_service_type',
+        //         'gms_booking_dtls.book_current_status',
+        //         'gms_booking_dtls.book_pod_scan',
+        //         'gms_booking_dtls.book_billamt',
+        //         'gms_booking_dtls.book_total_amount'
+        //     );
 
-    );
+        $query2 = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')->join('gms_city', 'gms_city.city_code', '=', 'gms_booking_dtls.book_org')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 0 THEN 1 END)) As notDelivered'),
+            DB::raw('concat(COUNT(CASE WHEN gms_booking_dtls.delivery_status <> 1 THEN 0 END)) As delivered'),
 
-          $count['totalcnnno'] = 0;
-          $count['notDelivered']=0;
-          $count['delivered'] = 0;
+        );
+
+        $count['totalcnnno'] = 0;
+        $count['notDelivered'] = 0;
+        $count['delivered'] = 0;
 
         if (isset($from_date) || isset($to_date) || isset($book_product_type) || isset($book_doc) || isset($book_mode) || isset($book_service_type) || isset($book_cust_type) || isset($book_cust_code) || isset($book_cnno) || isset($book_pin)) {
             if ($from_date && $to_date) {
 
-                $query->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
+                // $query->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
                 $query2->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
             }
             if (isset($book_product_type)) {
-                $query->where('gms_booking_dtls.book_product_type', $book_product_type);
+                //   $query->where('gms_booking_dtls.book_product_type', $book_product_type);
                 $query2->where('gms_booking_dtls.book_product_type', $book_product_type);
             }
             if (isset($book_doc)) {
-                $query->where('gms_booking_dtls.book_doc', $book_doc);
+                // $query->where('gms_booking_dtls.book_doc', $book_doc);
                 $query2->where('gms_booking_dtls.book_doc', $book_doc);
 
             }
             if (isset($book_mode)) {
-                $query->where('gms_booking_dtls.book_mode', $book_mode);
+                // $query->where('gms_booking_dtls.book_mode', $book_mode);
                 $query2->where('gms_booking_dtls.book_mode', $book_mode);
             }
             if (isset($book_service_type)) {
-                $query->where('gms_booking_dtls.book_service_type', $book_service_type);
+                // $query->where('gms_booking_dtls.book_service_type', $book_service_type);
                 $query2->where('gms_booking_dtls.book_service_type', $book_service_type);
             }
             if (isset($book_cust_type)) {
-                $query->where('gms_booking_dtls.book_cust_type', $book_cust_type);
-                 $query2->where('gms_booking_dtls.book_cust_type', $book_cust_type);
+                // $query->where('gms_booking_dtls.book_cust_type', $book_cust_type);
+                $query2->where('gms_booking_dtls.book_cust_type', $book_cust_type);
             }
             if (isset($book_cust_code)) {
-                $query->where('gms_booking_dtls.book_cust_code', $book_cust_code);
+                //  $query->where('gms_booking_dtls.book_cust_code', $book_cust_code);
                 $query2->where('gms_booking_dtls.book_cust_code', $book_cust_code);
             }
             if (isset($book_cnno)) {
-                $query->where('gms_booking_dtls.book_cnno', $book_cnno);
+                //  $query->where('gms_booking_dtls.book_cnno', $book_cnno);
                 $query2->where('gms_booking_dtls.book_cnno', $book_cnno);
             }
             if (isset($book_pin)) {
-                $query->where('gms_booking_dtls.book_pin', $book_pin);
+                //  $query->where('gms_booking_dtls.book_pin', $book_pin);
                 $query2->where('gms_booking_dtls.book_pin', $book_pin);
             }
 
-            $query->orderBy('book_mfdate', 'DESC');
-
-
+            $query2->orderBy('book_mfdate', 'DESC');
         }
-            $response['Status']['report'] = $query->get();
-            $response['Status']['count'] = $query2->get();
-            return $response;
+        //  $response['Status']['report'] = $query->get();
+        $response['Status']['count'] = $query2->get();
+        return $response;
 
-}
+    }
+
+    public function bookingStats()
+    {
+        //BLRRO
+        $response['bllro'] = GmsBookingDtls::where('book_br_code', 'BLRRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //CHERO
+        $response['chero'] = GmsBookingDtls::where('book_br_code', 'CHERO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //HYDRO
+        $response['hydro'] = GmsBookingDtls::where('book_br_code', 'HYDRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //DELRO
+        $response['delro'] = GmsBookingDtls::where('book_br_code', 'DELRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //AMDRO
+        $response['amdro'] = GmsBookingDtls::where('book_br_code', 'AMDRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //CCURO
+        $response['ccuro'] = GmsBookingDtls::where('book_br_code', 'CCURO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //NGPRO
+        $response['ngpro'] = GmsBookingDtls::where('book_br_code', 'NGPRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //MUMRO
+        $response['mumro'] = GmsBookingDtls::where('book_br_code', 'MUMRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //PNQRO
+        $response['pnqro'] = GmsBookingDtls::where('book_br_code', 'PNQRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //COKRO
+        $response['cokro'] = GmsBookingDtls::where('book_br_code', 'COKRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //RAIRO
+        $response['rairo'] = GmsBookingDtls::where('book_br_code', 'RAIRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //JAIRO
+        $response['jairo'] = GmsBookingDtls::where('book_br_code', 'JAIRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //GAURO
+        $response['gauro'] = GmsBookingDtls::where('book_br_code', 'GAURO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //VJARO
+        $response['vjaro'] = GmsBookingDtls::where('book_br_code', 'VJARO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //DENRO
+        $response['denro'] = GmsBookingDtls::where('book_br_code', 'DENRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //KOLRO
+        $response['kolro'] = GmsBookingDtls::where('book_br_code', 'KOLRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //BOMRO
+        $response['bomro'] = GmsBookingDtls::where('book_br_code', 'BOMRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //PNERO
+        $response['pnero'] = GmsBookingDtls::where('book_br_code', 'PNERO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //PATRO
+        $response['patro'] = GmsBookingDtls::where('book_br_code', 'PATRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //BBSRO
+        $response['bbsro'] = GmsBookingDtls::where('book_br_code', 'BBSRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        //BHPRO
+        $response['bhpro'] = GmsBookingDtls::where('book_br_code', 'BHPRO')->select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('round((count(book_cnno)/(select count(*) from gms_booking_dtls)*100),2) as cnno_percentage'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('round(((book_weight)/(SUM(book_weight))*100),2) as wt_percentage'),
+            DB::raw('count(book_billamt) as totalamt'),
+            DB::raw('round(((book_billamt)/(SUM(book_billamt))*100),2) as amt_percentage'),
+        )->get();
+
+        return $response;
+        // $percent = $wl / $total * 100;
+    }
+
+    public function boWiseBookingReport(Request $request)
+    {
+        $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+        $input = $this->request->all();
+        $from_date = $this->request->from_date;
+        $to_date = $this->request->to_date;
+        $bo_sf = $this->request->bo_sf;
+
+        $boWiseBookingReport = GmsBookingDtls::select(
+            DB::raw('count(book_cnno) as totalcnno'),
+            DB::raw('count(book_weight) as totalweight'),
+            DB::raw('count(book_billamt) as totalamt'),
+        );
+        ///  $boWiseBookingReport->groupBy('book_br_code');
+
+        if ($request->has('from_date') && $request->has('to_date')) {
+            $boWiseBookingReport->whereBetween('book_mfdate', [$from_date, $to_date]);
+        }
+        if ($request->has('bo_sf')) {
+            $boWiseBookingReport->where('book_br_code', $bo_sf);
+        }
+
+        $boWiseBookingReport->where('is_deleted', 0);
+        return $boWiseBookingReport->paginate($request->per_page);
+
+    }
+
+    public function bookingAnalyticRep(Request $request)
+    {   
+         $from_date = $this->request->from_date;
+         $to_date = $this->request->to_date;
+         $branch_type = $this->request->branch_type;
+         $branch_name = $this->request->branch_name;
+         $booking_type = $this->request->booking_type;
+         $customer = $this->request->customer;
+
+
+         $bookingAnalyticRep = GmsBookingDtls::leftjoin('gms_customer','gms_booking_dtls.book_cust_code','=','gms_customer.cust_code')->select(
+            'book_cust_type',
+            DB::raw('concat("[",gms_booking_dtls.book_cust_code,",",gms_customer.cust_name,"]")As Customers'),
+            DB::raw('count(book_cnno) as totalCnno'),
+            DB::raw('count(book_weight) as totalWeight'),
+            DB::raw('count(book_vol_weight) as totalVolWeight'),
+            DB::raw('count(book_pcs) as totalPcs'),
+            DB::raw('count(book_billamt) as totalAmt'),
+            'book_mfdate'
+           )->get();
+
+        if ($request->has('from_date') && $request->has('to_date')) {
+            $bookingAnalyticRep->whereBetween('book_mfdate', [$from_date, $to_date]);
+        }
+        if ($request->has('branch_name')) {
+            $bookingAnalyticRep->where('book_br_code', $branch_name);
+        }
+        if ($request->has('customer')) {
+            $bookingAnalyticRep->where('book_cust_code', $customer);
+        }
+        if ($request->has('booking_type')) {
+            $bookingAnalyticRep->where('book_cust_type', $booking_type);
+        }
+        
+        $bookingAnalyticRep->group_by('book_cust_code');
+        $bookingAnalyticRep->where('is_deleted', 0);
+        return $bookingAnalyticRep->paginate($request->per_page);
+    }
+
+    public function deliveryAnalyticRep()
+    {
+         $from_date = $this->request->from_date;
+         $to_date = $this->request->to_date;
+         $branch_type = $this->request->branch_type;
+         $branch_name = $this->request->branch_name;
+         $booking_type = $this->request->booking_type;
+         $customer = $this->request->customer;
+
+
+         $bookingAnalyticRep = GmsDmfDtls::leftjoin('gms_customer','gms_dmf_dtls.dmf_fr_code','=','gms_customer.cust_code')->select(
+            'dmf_type',
+            DB::raw('concat("[",gms_dmf_dtls.dmf_fr_code,",",gms_customer.cust_name,"]")As Customers'),
+            DB::raw('count(dmf_mfno) as totalMf'),
+            DB::raw('count(dmf_cnno) as totalCnno'),
+            DB::raw('sum(dmf_pcs) as updateCnno'),
+            DB::raw('concat(sum(dmf_cnno)- sum(dmf_pcs)) As Notupdated'),
+            DB::raw('count(dmf_pod_status) as podsupdated'),
+            DB::raw('count(dmf_cn_status) as Delivery')
+        );
+
+        if ($request->has('from_date') && $request->has('to_date')) {
+            $bookingAnalyticRep->whereBetween('book_mfdate', [$from_date, $to_date]);
+        }
+        if ($request->has('branch_name')) {
+            $bookingAnalyticRep->where('book_br_code', $branch_name);
+        }
+        if ($request->has('customer')) {
+            $bookingAnalyticRep->where('book_cust_code', $customer);
+        }
+        if ($request->has('booking_type')) {
+            $bookingAnalyticRep->where('book_cust_type', $booking_type);
+        }
+        
+        $bookingAnalyticRep->group_by('dmf_fr_code');
+        $bookingAnalyticRep->where('is_deleted', 0);
+        return $bookingAnalyticRep->paginate($request->per_page);
+    }
 
     public function codTopayReport(Request $request)
     {
@@ -204,7 +527,6 @@ class ReportController extends Controller
             );
 
         if ($request->has('from_date') && $request->has('to_date')) {
-
             $dataSearch->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
             $dataSearch->where('gms_booking_dtls.is_deleted', 0);
             $query = $dataSearch->get();
@@ -249,16 +571,16 @@ class ReportController extends Controller
                     $response['Status'] = $query2->get();
                 } else {
                     $reportQuery = GmsPmfDtls::select(
-                      'gms_pmf_dtls.pmf_no',
-                     DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
-                      'gms_pmf_dtls.pmf_dest',
-                      'gms_pmf_dtls.pmf_mode',
-                      'gms_pmf_dtls.pmf_cnno',
-                      'gms_pmf_dtls.pmf_city',
-                      'gms_pmf_dtls.pmf_wt',
-                      'gms_pmf_dtls.pmf_pin',
-                      'gms_pmf_dtls.pmf_doc'
-                     );
+                        'gms_pmf_dtls.pmf_no',
+                        DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
+                        'gms_pmf_dtls.pmf_dest',
+                        'gms_pmf_dtls.pmf_mode',
+                        'gms_pmf_dtls.pmf_cnno',
+                        'gms_pmf_dtls.pmf_city',
+                        'gms_pmf_dtls.pmf_wt',
+                        'gms_pmf_dtls.pmf_pin',
+                        'gms_pmf_dtls.pmf_doc'
+                    );
                     $query = GmsPmfDtls::select(
                         DB::raw('count(DISTINCT pmf_no)as totalOPmf'),
                         DB::raw('count(pmf_cnno)as totalCnno'),
@@ -308,22 +630,21 @@ class ReportController extends Controller
                 $response['Status'] = $query2->get();
             } else {
                 $reportQuery = GmsPmfDtls::select(
-                      'gms_pmf_dtls.pmf_no',
-                     DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
-                      'gms_pmf_dtls.pmf_dest',
-                      'gms_pmf_dtls.pmf_mode',
-                      'gms_pmf_dtls.pmf_cnno',
-                      'gms_pmf_dtls.pmf_city',
-                      'gms_pmf_dtls.pmf_wt',
-                      'gms_pmf_dtls.pmf_actual_wt',
-                      'gms_pmf_dtls.pmf_actual_received_wt',
-                      'gms_pmf_dtls.pmf_pin',
-                      'gms_pmf_dtls.pmf_cd_no',
-                      'gms_pmf_dtls.pmf_status',
-                      'gms_pmf_dtls.pmf_doc',
-                      
-                     );
+                    'gms_pmf_dtls.pmf_no',
+                    DB::raw('concat("[",gms_pmf_dtls.pmf_date,",",gms_pmf_dtls.pmf_time,"]") As dateTime'),
+                    'gms_pmf_dtls.pmf_dest',
+                    'gms_pmf_dtls.pmf_mode',
+                    'gms_pmf_dtls.pmf_cnno',
+                    'gms_pmf_dtls.pmf_city',
+                    'gms_pmf_dtls.pmf_wt',
+                    'gms_pmf_dtls.pmf_actual_wt',
+                    'gms_pmf_dtls.pmf_actual_received_wt',
+                    'gms_pmf_dtls.pmf_pin',
+                    'gms_pmf_dtls.pmf_cd_no',
+                    'gms_pmf_dtls.pmf_status',
+                    'gms_pmf_dtls.pmf_doc',
 
+                );
                 $query = GmsPmfDtls::select(
                     DB::raw('count(DISTINCT pmf_no)as totalIPmf'),
                     DB::raw('count(pmf_cnno)as totalCnno'),
@@ -351,8 +672,8 @@ class ReportController extends Controller
         if (isset($from_date) || isset($to_date)) {
             if (isset($group_by)) {
 
-                $reportQuery2 = GmsDmfDtls::join('gms_emp','gms_dmf_dtls.dmf_emp','=','gms_emp.emp_code')->join('gms_city','gms_dmf_dtls.dmf_dest','=','gms_city.city_code')->select(
-                    'dmf_mfno', 
+                $reportQuery2 = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
+                    'dmf_mfno',
                     DB::raw('concat("[",gms_dmf_dtls.dmf_date,",",gms_dmf_dtls.dmf_time,"]") As dateTime'),
                     'gms_dmf_dtls.dmf_emp',
                     'gms_emp.emp_name',
@@ -369,10 +690,8 @@ class ReportController extends Controller
                     'gms_dmf_dtls.dmf_remarks',
                     'gms_dmf_dtls.dmf_delv_remarks',
                     'gms_dmf_dtls.dmf_pod_status'
-                    
 
                 );
-
                 $query2 = GmsDmfDtls::select(
                     DB::raw('count(DISTINCT dmf_mfno)as totalDrs'),
                     DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
@@ -386,8 +705,8 @@ class ReportController extends Controller
                 $response['Status']['report'] = $reportQuery2->get();
             } else {
 
-                $reportQuery = GmsDmfDtls::join('gms_emp','gms_dmf_dtls.dmf_emp','=','gms_emp.emp_code')->join('gms_city','gms_dmf_dtls.dmf_dest','=','gms_city.city_code')->select(
-                    'dmf_mfno', 
+                $reportQuery = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
+                    'dmf_mfno',
                     DB::raw('concat("[",gms_dmf_dtls.dmf_mfdate,",",gms_dmf_dtls.dmf_mftime,"]") As dateTime'),
                     'gms_dmf_dtls.dmf_emp',
                     'gms_emp.emp_name',
@@ -404,10 +723,7 @@ class ReportController extends Controller
                     'gms_dmf_dtls.dmf_remarks',
                     'gms_dmf_dtls.dmf_delv_remarks',
                     'gms_dmf_dtls.dmf_pod_status'
-                    
-
                 );
-
                 $query = GmsDmfDtls::select(
                     DB::raw('count(DISTINCT dmf_mfno)as totalDrs'),
                     DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
@@ -429,6 +745,36 @@ class ReportController extends Controller
             $response['Status'] = "Data Not Found";
         }
         return $response;
+    }
+
+    public function drsBoWiseReports(Request $request)
+    {
+        $from_date = $request->from_date;
+        $to_date = $request->to_date;
+        $office_type = $request->office_type;
+        $branch_type = $request->branch_type;
+
+         $query = GmsDmfDtls::select(
+                    DB::raw('count(dmf_mfno)as totalDmf'),
+                    DB::raw('count(DISTINCT dmf_cnno)as totalCnno'),
+                    DB::raw('count(DISTINCT dmf_wt)as totalWight'),
+                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
+                    /*DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"),*/
+                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
+                    /*DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"),*/
+                    DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
+                /*DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),*/
+                );
+
+            if ($from_date && $to_date) {
+                    $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
+                }
+            if ($office_type) {
+                $query->whereBetween('gms_dmf_dtls.dmf_branch', $office_type);
+            }
+
+            $query->groupBy('gms_dmf_dtls.dmf_branch');
+            $response['Status'] = $query->get();
     }
 
     public function empReport(Request $request)
@@ -540,7 +886,6 @@ class ReportController extends Controller
                 DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
 
             )->get();
-
             return $response;
         } else {
             return "Data Not Found";
@@ -651,17 +996,13 @@ class ReportController extends Controller
 
         // }
 
-
         $getZone = GmsZone::join('gms_state', 'gms_zone.id', '=', 'gms_state.zone_id')
             ->join('gms_city', 'gms_state.state_code', 'gms_city.state_code')
             ->select('gms_zone.id', 'gms_zone.zone_name', 'gms_state.state_name', 'gms_state.state_code', 'gms_city.city_name');
 
         $getZone->orderBy('gms_zone.id', 'asc');
-
         $data[] = $getZone->get();
         return $data;
-
-
     }
 
     /**

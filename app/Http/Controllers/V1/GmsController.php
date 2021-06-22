@@ -769,7 +769,6 @@ class GmsController extends Controller
         $input['entry_date'] = date('d-m-Y', strtotime($input['entry_date']));
         $addrateBbsro = new GmsRateMasterBbsro($input);
         $addrateBbsro->save();
-
         return $this->successResponse(self::CODE_OK, "RateMaster Bbsro Added Successfully!!", $addrateBbsro);
     }
 
@@ -1016,7 +1015,6 @@ class GmsController extends Controller
             $pinCode = $pincode->get();
             return $this->successResponse(self::CODE_OK, "Show Data with Pincode Successfully!!", $pinCode);
         }
-
         $city = GmsCity::join('gms_state', 'gms_state.state_code', '=', 'gms_city.state_code')
             ->join('gms_zone', 'gms_zone.id', '=', 'gms_state.zone_id')
             ->join('gms_pincode', 'gms_pincode.city_code', '=', 'gms_city.city_code')
@@ -1027,7 +1025,6 @@ class GmsController extends Controller
         $city = $city->get();
         return $this->successResponse(self::CODE_OK, "Show Data with City Successfully!!", $city);
     }
-
 
     /**
      * @OA\Post(
@@ -1302,7 +1299,6 @@ class GmsController extends Controller
 
         );
         $query->groupBy('gms_pmf_dtls.pmf_no');
-
         if ($request->has('from_date') && $request->has('to_date')) {
             $query->whereBetween('pmf_date', [$from_date, $to_date]);
         }
@@ -1326,7 +1322,6 @@ class GmsController extends Controller
 
     }
 
-    
 
     public function searchDpmf(Request $request)
     {
@@ -1665,7 +1660,50 @@ class GmsController extends Controller
         }
     }
 
+    public function getAllPinCodeToBranch(Request $request)
+    {
+        $branches = $this->request->branches;
+        $city = $this->request->city;
 
+        $getAllPinCodeToBranch = GmsPincode::leftjoin('gms_city', 'gms_pincode.city_code', '=', 'gms_city.city_code')->select(DB::raw('concat(gms_city.city_name,"(",gms_pincode.city_code,")") As city_name'), 'gms_pincode.pincode_value',
+            'gms_pincode.pin_status as remark'
+        );
+
+        if ($request->has('branches')) {
+            $getAllPinCodeToBranch->where('gms_pincode.branch_id', $branches);
+        }
+        if ($request->has('city')) {
+            $getAllPinCodeToBranch->where('gms_pincode.city_code', $city);
+        }
+        if ($request->has('search')) {
+            $search = $request->search;
+            $getAllPinCodeToBranch->where('gms_pincode.pincode_value', 'LIKE', '%' . $search . '%');
+        }
+        $gmsCustomer->orderBy('gms_pincode.id', 'desc');
+        return $getAllPinCodeToBranch->paginate($request->per_page);
+    }
+
+    public function assignPinCodeToBranch()
+    {
+        $input = $this->request->all();
+        $getAllPinCodeToBranch = GmsPincode::where('pincode_value', $input['pincode'])->first();
+        foreach ($getAllPinCodeToBranch as $value) {
+            # code...
+            $value->pin_status = isset($input['status']) ? $input['status'] : "";
+            return $this->successResponse(self::CODE_OK, "PinCode Assign Successfully!!");
+
+        }
+    }
+
+    public function getPincodeTotalCount()
+    {                                                     //ADD OFFICE CODE SESSION
+        $response['totalPincodeIn'] = GmsPincode::where('city_code', 'BLR')->count();
+        $response['totalUsedBy'] = GmsPincode::where('city_code', 'BLR')->where('branch_id', 'BLR1')->where('pin_status', 'A')->count();
+        $response['totalAssignedToOtherBranch'] = '89';
+        // GmsPincode::where('city_code','BLR')->where('branch_id', 'BLR1')->where('pin_status','Y')->count();
+        $response['totalNotAssigned'] = '0';
+        return $response;
+    }
 }
 
 
