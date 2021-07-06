@@ -32,6 +32,7 @@ use App\Models\GmsZone;
 use App\Models\GmsPmfDtls;
 use App\Models\GmsColoaderDtls;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 
 class GmsController extends Controller
@@ -340,41 +341,6 @@ class GmsController extends Controller
         return $this->successResponse(self::CODE_OK, "News Created Successfully!!", $addNews);
     }
 
-    /**
-     * @OA\Post(
-     * path="/viewPayment",
-     * summary="View Payment",
-     * operationId="viewPayment",
-     *  tags={"Payment"},
-     * @OA\Parameter(
-     *   name="payment_id",
-     *   in="query",
-     *   required=true,
-     *  @OA\Schema(
-     *   type="integer"
-     *  )
-     * ),
-     * @OA\Response(
-     * response=200,
-     * description="Success",
-     * @OA\MediaType(
-     * mediaType="application/json",
-     * )
-     * ),
-     * @OA\Response(
-     * response=401,
-     * description="Unauthorized"
-     * ),
-     * @OA\Response(
-     * response=400,
-     * description="Invalid request"
-     * ),
-     * @OA\Response(
-     * response=404,
-     * description="not found"
-     * ),
-     * )
-     */
 
     public function addPayment()
     {
@@ -1207,6 +1173,8 @@ class GmsController extends Controller
 
     public function editAlert()
     {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->first();
         $validator = Validator::make($this->request->all(), [
             'alert_id' => 'required|exists:gms_alerts,id',
 
@@ -1215,6 +1183,7 @@ class GmsController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
+        $input['user_id'] = $admin->id;
         $getEmailAlert = GmsAlert::where('id', $input['alert_id'])->where('is_deleted', 0)->first();
         if ($getEmailAlert) {
             $editEmail = GmsAlert::find($getEmailAlert->id);
@@ -1317,11 +1286,9 @@ class GmsController extends Controller
         }
         $query->where('gms_pmf_dtls.is_deleted', 0);
         //$query2[] = $query->get()->toArray();
-
         return $query->paginate($request->per_page);
 
     }
-
 
     public function searchDpmf(Request $request)
     {
@@ -1606,12 +1573,14 @@ class GmsController extends Controller
     {
         $input = $this->request->all();
         $query = GmsComplaint::
-        join('gms_booking_dtls AS book', 'book.book_cnno', '=', 'gms_complaint.log_cnno')
-            ->join('admin AS create', 'create.id', '=', 'gms_complaint.userid')
-            ->join('admin AS closed', 'closed.id', '=', 'gms_complaint.closed_by')
-            ->join('gms_city AS origin', 'origin.city_code', '=', 'book.book_org')
-            ->join('gms_city AS dest', 'dest.city_code', '=', 'book.book_dest')
+        leftjoin('gms_booking_dtls AS book', 'book.book_cnno', '=', 'gms_complaint.log_cnno')
+            ->leftjoin('admin AS create', 'create.id', '=', 'gms_complaint.userid')
+            ->leftjoin('admin AS closed', 'closed.id', '=', 'gms_complaint.closed_by')
+            ->leftjoin('gms_city AS origin', 'origin.city_code', '=', 'book.book_org')
+            ->leftjoin('gms_city AS dest', 'dest.city_code', '=', 'book.book_dest')
             ->select(
+                'gms_complaint.id',
+                DB::raw('CONCAT("GMSCQ","-",gms_complaint.id) AS complaint_no'),
                 'book.book_cnno',
                 'origin.city_name AS origin',
                 'dest.city_name AS destination',
@@ -1660,11 +1629,21 @@ class GmsController extends Controller
         }
     }
 
+    public function asignPincodeCityList(Request $request)
+    {
+        $getAllCityCodeToBranch = GmsCity::select('gms_city.city_code as value', 
+            DB::raw('concat(gms_city.city_name,"(",gms_city.city_code,")","(",gms_city.state_code,")") As city_name')
+        )->where('is_deleted',0)->get();
+        $data['label'] = 'value';
+        $data['options'] = $getAllCityCodeToBranch;
+        $collection = new Collection([$data]);
+        return $collection;
+    }
+
     public function getAllPinCodeToBranch(Request $request)
     {
         $branches = $this->request->branches;
         $city = $this->request->city;
-
         $getAllPinCodeToBranch = GmsPincode::leftjoin('gms_city', 'gms_pincode.city_code', '=', 'gms_city.city_code')->select(DB::raw('concat(gms_city.city_name,"(",gms_pincode.city_code,")") As city_name'), 'gms_pincode.pincode_value',
             'gms_pincode.pin_status as remark'
         );
@@ -1679,7 +1658,7 @@ class GmsController extends Controller
             $search = $request->search;
             $getAllPinCodeToBranch->where('gms_pincode.pincode_value', 'LIKE', '%' . $search . '%');
         }
-        $gmsCustomer->orderBy('gms_pincode.id', 'desc');
+        $getAllPinCodeToBranch->orderBy('gms_pincode.id', 'desc');
         return $getAllPinCodeToBranch->paginate($request->per_page);
     }
 
@@ -1687,11 +1666,12 @@ class GmsController extends Controller
     {
         $input = $this->request->all();
         $getAllPinCodeToBranch = GmsPincode::where('pincode_value', $input['pincode'])->first();
-        foreach ($getAllPinCodeToBranch as $value) {
-            # code...
-            $value->pin_status = isset($input['status']) ? $input['status'] : "";
-            return $this->successResponse(self::CODE_OK, "PinCode Assign Successfully!!");
-
+        # code...
+         if (isset($input['status'])) {
+           $getAllPinCodeToBranch->pin_status = $input['status'];
+           return $this->successResponse(self::CODE_OK, "PinCode Assign Successfully!!");
+        }else{
+            return "plz check pincode";
         }
     }
 
@@ -1703,6 +1683,35 @@ class GmsController extends Controller
         // GmsPincode::where('city_code','BLR')->where('branch_id', 'BLR1')->where('pin_status','Y')->count();
         $response['totalNotAssigned'] = '0';
         return $response;
+    }
+
+    public function zoneList()
+    {
+        $zone = GmsOffice::where('office_type','ZO')->select(
+
+        DB::raw('CONCAT(gms_office.id) As value'),
+            //DB::raw('CONCAT(gms_office.office_name,"(",gms_office.office_code,")" As label'),
+             DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
+        )->where('gms_office.is_deleted', 0)->orderBy('gms_office.id', 'asc')->get();
+        $data['label'] = 'zone';
+        $data['options'] = $zone;
+        $collection = new Collection([$data]);
+        return $collection;
+    }
+
+    public function getZoneBoList()
+    {
+        $input = $this->request->all();
+        $zone = GmsOffice::where('office_type','RO')->select(
+
+        DB::raw('CONCAT(gms_office.office_name) As value'),
+            //DB::raw('CONCAT(gms_office.office_name,"(",gms_office.office_code,")" As label'),
+             DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
+        )->where('office_under',$input['office'])->where('gms_office.is_deleted', 0)->orderBy('gms_office.id', 'asc')->get();
+        $data['label'] = 'zone';
+        $data['options'] = $zone;
+        $collection = new Collection([$data]);
+        return $collection;
     }
 }
 

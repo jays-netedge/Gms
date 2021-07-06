@@ -30,7 +30,7 @@ trait CustomerTrait
         $response['Contract_Details'] = GmsCustomer::where('id', $input['cus_id'])->where('is_deleted', 0)->select('cust_cd_contact_name', 'cust_cd_contract_date', 'cust_cd_renewal_date', 'cust_cd_exp_date', 'cust_cd_remarks')->first();
         $response['Security_Deposit'] = GmsCustomer::where('id', $input['cus_id'])->where('is_deleted', 0)->select('cust_secdip_fixed', 'cust_secdip_paid', 'cust_sec_chequeno', 'cust_sec_chequedate', 'cust_sd_fixed')->first();
 
-        $response['Rate Code'] = GmsCustomer::join('gms_rate_code','gms_customer.cust_code','=','gms_rate_code.cust_code')->select('office_code','cust_type','rate_code','description','effect_date_from')->first();
+        $response['Rate Code'] = GmsCustomer::join('gms_rate_code', 'gms_customer.cust_code', '=', 'gms_rate_code.cust_code')->select('office_code', 'cust_type', 'rate_code', 'description', 'effect_date_from')->first();
 
         if (!$response) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
@@ -144,7 +144,7 @@ trait CustomerTrait
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $getColoader = GmsColoader::where('id', $input['coloader_id'])->where('is_deleted',0)->first();
+        $getColoader = GmsColoader::where('id', $input['coloader_id'])->where('is_deleted', 0)->first();
         if ($getColoader != null) {
             $getColoader->is_deleted = 1;
             $getColoader->save();
@@ -156,7 +156,7 @@ trait CustomerTrait
 
     public function coloaderDetails()
     {
-         $validator = Validator::make($this->request->all(), [
+        $validator = Validator::make($this->request->all(), [
             'coloader_id' => 'required|exists:gms_coloader,id',
         ]);
         if ($validator->fails()) {
@@ -183,7 +183,7 @@ trait CustomerTrait
         $input = $this->request->all();
         $getColoader = GmsColoader::where('id', $input['coloader_id'])->where('is_deleted', 0)->first();
         if ($getColoader) {
-            $editColoader = GmsBookCategory::find($getColoader->id);
+            $editColoader = GmsColoader::find($getColoader->id);
             $editColoader->update($input);
             return $this->successResponse(self::CODE_OK, "Update Successfully!!", $editColoader);
         } else {

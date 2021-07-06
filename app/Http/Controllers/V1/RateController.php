@@ -488,14 +488,14 @@ class RateController extends Controller
         $reporting_office = $request->reporting_office;
         $reporting_bo_office = $request->reporting_bo_office;
 
-        $getCustomerAssign = GmsCustomer::leftjoin('gms_rate_code', 'gms_customer.cust_code', '=', 'gms_rate_code.cust_code')->leftjoin('gms_office','gms_customer.created_office_code','=','gms_office.office_code')->select(
+        $getCustomerAssign = GmsCustomer::leftjoin('gms_rate_code', 'gms_customer.cust_code', '=', 'gms_rate_code.cust_code')->leftjoin('gms_office', 'gms_customer.created_office_code', '=', 'gms_office.office_code')->select(
             DB::raw('CONCAT(gms_customer.created_office_code,"(",gms_office.office_name,")") AS BO_name'),
             DB::raw('concat(gms_customer.cust_code,"(",gms_customer.cust_name,")")As Direct_Customer'),
             'gms_rate_code.rate_code',
             'gms_customer.delivery_code',
             'gms_customer.discount_code'
         );
-       
+
 
         if ($request->has('cust_type')) {
             $getCustomerAssign->where('gms_customer.cust_type', $cust_type);
@@ -509,7 +509,7 @@ class RateController extends Controller
         $getCustomerAssign->where('gms_customer.is_deleted', 0);
         $getCustomerAssign->where('gms_customer.created_office_code', 'BLRRO'); //OFFICE SESSION ADD HERE
         return $getCustomerAssign->paginate($request->per_page);
-        
+
     }
 
     public function discountRateDropDown()
@@ -533,62 +533,62 @@ class RateController extends Controller
 
     public function xlUpdate(Request $request)
     {
-      
-        $rows = Excel::toArray(new XlUpdateImport, $request->file('sampledata')); 
-        $cnt = count($rows[0]);    
-        $value = array();       
-        for($x= 0; $x< $cnt; $x++)  {   
-             array_push($value, $rows[0][$x][0]);
+
+        $rows = Excel::toArray(new XlUpdateImport, $request->file('sampledata'));
+        $cnt = count($rows[0]);
+        $value = array();
+        for ($x = 0; $x < $cnt; $x++) {
+            array_push($value, $rows[0][$x][0]);
         }
 
-        $getDataFromTable = GmsBookingDtls::leftjoin('gms_office','gms_booking_dtls.book_br_code','=','gms_office.office_code')->leftjoin('gms_customer','gms_booking_dtls.book_cust_code','=','gms_customer.cust_code')
-            ->leftjoin('gms_city','gms_booking_dtls.book_org','=','gms_city.city_code')
-            ->leftjoin('gms_dmf_dtls','gms_booking_dtls.book_cnno','=','gms_dmf_dtls.dmf_cnno')
-            ->leftjoin('gms_emp','gms_dmf_dtls.dmf_fr_code','=','gms_emp.emp_code')
+        $getDataFromTable = GmsBookingDtls::leftjoin('gms_office', 'gms_booking_dtls.book_br_code', '=', 'gms_office.office_code')->leftjoin('gms_customer', 'gms_booking_dtls.book_cust_code', '=', 'gms_customer.cust_code')
+            ->leftjoin('gms_city', 'gms_booking_dtls.book_org', '=', 'gms_city.city_code')
+            ->leftjoin('gms_dmf_dtls', 'gms_booking_dtls.book_cnno', '=', 'gms_dmf_dtls.dmf_cnno')
+            ->leftjoin('gms_emp', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_emp.emp_code')
             ->select('book_cnno',
-            DB::raw('concat(gms_booking_dtls.book_mfdate,"(",gms_booking_dtls.book_mftime,")")As booking_date_time'),
-            'gms_booking_dtls.book_refno',
-            'gms_booking_dtls.book_br_code',
-            'gms_office.office_name',
-            'gms_booking_dtls.book_emp_code',
-            'gms_booking_dtls.book_cust_code',
-          //  'gms_booking_dtls.book_cust_code',
-            'gms_customer.cust_la_ent',
-            'gms_booking_dtls.book_mfno',
-            'gms_booking_dtls.book_mfdate',
-            'gms_booking_dtls.book_mftime',
-            'gms_booking_dtls.book_pin',
-            'gms_city.city_name',
-          //  'gms_city.book_dest',
-            'gms_booking_dtls.book_cons_addr',
-            'gms_booking_dtls.book_cn_dtl',
-            'gms_booking_dtls.book_product_type',
-            'gms_booking_dtls.book_mode',
-            'gms_booking_dtls.book_doc',
-            'gms_booking_dtls.book_weight',
-            'gms_booking_dtls.book_vol_weight',
-            DB::raw('CONCAT(gms_booking_dtls.book_vol_lenght," (",gms_booking_dtls.book_vol_breight,")"," ", gms_booking_dtls.book_vol_height) AS book_vol_lbt'),
-            'gms_booking_dtls.book_pcs',
-            'gms_booking_dtls.book_remarks',
-            'gms_booking_dtls.book_service_type',
-            'gms_booking_dtls.book_pod_scan',
-            'gms_booking_dtls.book_topay',
-            'gms_booking_dtls.book_cod',
-            'gms_booking_dtls.book_billamt',
-            'gms_booking_dtls.book_total_amount',
-            'gms_city.city_name',
-            'gms_dmf_dtls.dmf_fr_code',
-            'gms_emp.emp_name',
-            'gms_dmf_dtls.dmf_emp',
-            'gms_emp.emp_name',
-            'gms_dmf_dtls.dmf_drsno',
-            'gms_dmf_dtls.dmf_atmpt_date',
-            'gms_dmf_dtls.dmf_cnno_remarks',
-            'gms_dmf_dtls.dmf_remarks',
-            'gms_dmf_dtls.dmf_ndel_reason'
-        )->whereIn('book_cnno',$value)->get();
+                DB::raw('concat(gms_booking_dtls.book_mfdate,"(",gms_booking_dtls.book_mftime,")")As booking_date_time'),
+                'gms_booking_dtls.book_refno',
+                'gms_booking_dtls.book_br_code',
+                'gms_office.office_name',
+                'gms_booking_dtls.book_emp_code',
+                'gms_booking_dtls.book_cust_code',
+                //  'gms_booking_dtls.book_cust_code',
+                'gms_customer.cust_la_ent',
+                'gms_booking_dtls.book_mfno',
+                'gms_booking_dtls.book_mfdate',
+                'gms_booking_dtls.book_mftime',
+                'gms_booking_dtls.book_pin',
+                'gms_city.city_name',
+                //  'gms_city.book_dest',
+                'gms_booking_dtls.book_cons_addr',
+                'gms_booking_dtls.book_cn_dtl',
+                'gms_booking_dtls.book_product_type',
+                'gms_booking_dtls.book_mode',
+                'gms_booking_dtls.book_doc',
+                'gms_booking_dtls.book_weight',
+                'gms_booking_dtls.book_vol_weight',
+                DB::raw('CONCAT(gms_booking_dtls.book_vol_lenght," (",gms_booking_dtls.book_vol_breight,")"," ", gms_booking_dtls.book_vol_height) AS book_vol_lbt'),
+                'gms_booking_dtls.book_pcs',
+                'gms_booking_dtls.book_remarks',
+                'gms_booking_dtls.book_service_type',
+                'gms_booking_dtls.book_pod_scan',
+                'gms_booking_dtls.book_topay',
+                'gms_booking_dtls.book_cod',
+                'gms_booking_dtls.book_billamt',
+                'gms_booking_dtls.book_total_amount',
+                'gms_city.city_name',
+                'gms_dmf_dtls.dmf_fr_code',
+                'gms_emp.emp_name',
+                'gms_dmf_dtls.dmf_emp',
+                'gms_emp.emp_name',
+                'gms_dmf_dtls.dmf_drsno',
+                'gms_dmf_dtls.dmf_atmpt_date',
+                'gms_dmf_dtls.dmf_cnno_remarks',
+                'gms_dmf_dtls.dmf_remarks',
+                'gms_dmf_dtls.dmf_ndel_reason'
+            )->whereIn('book_cnno', $value)->get();
 
-            return response()->json(["getDataFromTable"=>$getDataFromTable]);
+        return response()->json(["getDataFromTable" => $getDataFromTable]);
     }
-      
+
 }

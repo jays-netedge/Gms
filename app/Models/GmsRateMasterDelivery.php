@@ -12,6 +12,7 @@ class GmsRateMasterDelivery extends Model
     protected $table = 'gms_rate_master_delivery';
 
     protected $fillable = [
+        'id',
         'max_no',
         'del_rate_code',
         'flat_rate',
@@ -75,7 +76,6 @@ class GmsRateMasterDelivery extends Model
         'status',
         'entry_date',
         'created_by',
-
-
+        'is_deleted'
     ];
 }

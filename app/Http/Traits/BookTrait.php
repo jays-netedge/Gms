@@ -56,9 +56,6 @@ trait BookTrait
         }
     }
 
-    
-
-    
 
     public function roBook()
     {
@@ -97,7 +94,5 @@ trait BookTrait
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Customer ID Not Found");
         }
     }
-
-
 
 }

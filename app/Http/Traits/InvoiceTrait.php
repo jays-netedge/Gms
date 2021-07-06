@@ -110,7 +110,5 @@ trait InvoiceTrait
             return $this->successResponse(self::CODE_OK, "Coloader Show Successfully!!", $viewColoaderData);
         }
     }
-
-
 }
 

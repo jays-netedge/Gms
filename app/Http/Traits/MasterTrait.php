@@ -55,7 +55,6 @@ trait MasterTrait
         $input = $this->request->all();
         $addrateAmdro = new GmsRateMasterAmdro($input);
         $addrateAmdro->save();
-
         return $this->successResponse(self::CODE_OK, "RateMaster Amdro Added Successfully!!", $addrateAmdro);
 
     }
@@ -77,7 +76,6 @@ trait MasterTrait
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Amdro ID Not Found");
         }
-
     }
 
     public function del_Alert()
@@ -167,7 +165,7 @@ trait MasterTrait
     }
 
     public function view_payment()
-     {
+    {
         $validator = Validator::make($this->request->all(), [
             'payment_id' => 'required|exists:gms_payment,id',
         ]);
@@ -175,7 +173,7 @@ trait MasterTrait
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $viewPayment = GmsPayment::where('id', $input['payment_id'])->select('invoice_receipt','cust_code','type','amount','description','posted_date')->paginate(5)->first();
+        $viewPayment = GmsPayment::where('id', $input['payment_id'])->select('invoice_receipt', 'cust_code', 'type', 'amount', 'description', 'posted_date')->where('is_deleted', 0)->paginate(5)->first();
 
         if (!$viewPayment) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
@@ -202,7 +200,6 @@ trait MasterTrait
         }
     }
 
-   
 
     public function view_alert()
     {

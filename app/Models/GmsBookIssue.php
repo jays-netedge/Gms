@@ -12,6 +12,7 @@ class GmsBookIssue extends Model
     protected $table = 'gms_book_issue';
 
     protected $fillable = [
+        'id',
         'iss_type',
         'iss_code',
         'iss_date',

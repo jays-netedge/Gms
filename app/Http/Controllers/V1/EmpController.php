@@ -359,7 +359,7 @@ class EmpController extends Controller
     {
 
         $sessionObject = session()->get('session_token');
-        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted',0)->first();
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
         $emp = GmsEmp::join('gms_office', 'gms_office.office_type', '=', 'gms_emp.emp_rep_offtype')->select('gms_emp.emp_name', 'gms_emp.emp_code', 'gms_emp.emp_rep_office', 'gms_emp.emp_rep_offtype', 'gms_emp.emp_city', 'gms_emp.emp_phone', 'gms_emp.emp_dept', 'gms_emp.emp_work_type', 'gms_emp.emp_status', 'gms_emp.status');

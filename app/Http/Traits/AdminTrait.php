@@ -65,8 +65,8 @@ trait AdminTrait
     {
         $validator = Validator::make($this->request->all(), [
             'catRange_id' => 'required|exists:gms_book_cat_range,id',
-
         ]);
+
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
@@ -188,13 +188,13 @@ trait AdminTrait
     public function vendorDetails()
     {
         $validator = Validator::make($this->request->all(), [
-            'vendor_id' => 'required|exists:gms_book_vendor,id',
+            'vndr_id' => 'required|exists:gms_book_vendor,id',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
-        $input = $this->request->all();
-        $viewVendor = GmsBookVendor::select('vendor_code', 'person', 'company', 'city', 'pincode', 'con_num1', 'con_num2', 'email')->where('is_deleted', 0)->paginate(5)->first();
+
+        $viewVendor = GmsBookVendor::select('id', 'vendor_code', 'person', 'company', 'address1', 'address2', 'city', 'pincode', 'con_num1', 'con_num2', 'email1', 'email AS email2', 'tin_no', 'fax', 'bank_name', 'bank_branch_name', 'bank_account_no')->where('id', $this->request->vndr_id)->where('is_deleted', 0)->first();
         if (!$viewVendor) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
         } else {
@@ -336,14 +336,14 @@ trait AdminTrait
         }
         $input = $this->request->all();
         $getGmsDesg = GmsDesg::where('id', $input['desig_id'])->where('is_deleted', 0)->first();
-    
-            $getGmsDesg->desg_code = $input['desg_code'];
-            $getGmsDesg->desg_name = $input['desg_name'];
-            $getGmsDesg->user_id = $adminSession->admin_id;
-            $getGmsDesg->entry_date = Carbon::now()->toDateTimeString();
-            $getGmsDesg->update($input);
-            return $this->successResponse(self::CODE_OK, "Designation Update Successfully!!", $getGmsDesg);
-       
+
+        $getGmsDesg->desg_code = $input['desg_code'];
+        $getGmsDesg->desg_name = $input['desg_name'];
+        $getGmsDesg->user_id = $adminSession->admin_id;
+        $getGmsDesg->entry_date = Carbon::now()->toDateTimeString();
+        $getGmsDesg->update($input);
+        return $this->successResponse(self::CODE_OK, "Designation Update Successfully!!", $getGmsDesg);
+
     }
 
     public function designationDelete()

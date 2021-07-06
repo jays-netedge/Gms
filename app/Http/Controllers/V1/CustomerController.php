@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\GmsCustomerGallery;
 use App\Models\GmsInvoice;
+use App\Models\GmsOffice;
+use App\Models\GmsEmp;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -267,35 +269,22 @@ class CustomerController extends Controller
     public function addCustomer(Request $request)
     {
         $sessionObject = session()->get('session_token');
+        // $validator = Validator::make($request->all(), [
 
-        $validator = Validator::make($request->all(), [
-
-            'cust_email' => 'required|email:rfc,dns|unique:gms_customer,cust_email',
-            'cust_pan' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_pan',
-            'cust_phone' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_phone',
-            'cust_la_pan' => 'unique:gms_customer,cust_la_pan|regex:/^[A-Z0-9]+$/|size:10',
-            'cust_la_servicetax' => 'unique:gms_customer,cust_la_servicetax|regex:/^[A-Z0-9]+$/',
-            'pincode_value' => 'numeric|size:6',
-            'cust_ad_account_no' => 'numeric|size:11',
-            'cust_ad_ifsc_code' => 'numeric|size:11',
-            'pan_card' => 'image|mimes:jpeg,jpg,png,gif',
-            'passport_copy' => 'image|mimes:jpeg,jpg,png,gif',
-            'driving_license' => 'image|mimes:jpeg,jpg,png,gif',
-            'st_reg_certficate' => 'image|mimes:jpeg,jpg,png,gif',
-            'aadhaar_card' => 'image|mimes:jpeg,jpg,png,gif',
-            'voter_id' => 'image|mimes:jpeg,jpg,png,gif',
-            'telephone_bill' => 'image|mimes:jpeg,jpg,png,gif',
-            'photo' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo1' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo2' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'cust_email' => 'required|email:rfc,dns|unique:gms_customer,cust_email',
+        //     'cust_pan' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_pan',
+        //     'cust_phone' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_phone',
+        //     'cust_la_pan' => 'unique:gms_customer,cust_la_pan|regex:/^[A-Z0-9]+$/|size:10',
+        //     'cust_la_servicetax' => 'unique:gms_customer,cust_la_servicetax|regex:/^[A-Z0-9]+$/',
+        //     'pincode_value' => 'numeric|size:6',
+        //     'cust_ad_account_no' => 'numeric|size:11',
+        //     'cust_ad_ifsc_code' => 'numeric|size:11'
 
 
-        ]);
-        if ($validator->fails()) {
-            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
-        }
-
+        // ]);
+        // if ($validator->fails()) {
+        //     return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        // }
 
         if ($request->hasfile('telephone_bill')) {
             $image = $request->file('telephone_bill');
@@ -452,39 +441,38 @@ class CustomerController extends Controller
             'gallery_photo2' => isset($gallery_photo2) ? $gallery_photo2 : ''
 
         ]);
-
-        return $customer;
+        return $this->successResponse(self::CODE_OK, "Add Successfully!!", $customer);
     }
 
     public function addRoCustomer(Request $request)
     {
         $sessionObject = session()->get('session_token');
-        $validator = Validator::make($request->all(), [
+        // $validator = Validator::make($request->all(), [
 
-            'cust_email' => 'required|email:rfc,dns|unique:gms_customer,cust_email',
-            'cust_pan' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_pan',
-            'cust_phone' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_phone',
-            'cust_la_pan' => 'unique:gms_customer,cust_la_pan|regex:/^[A-Z0-9]+$/|size:10',
-            'cust_la_servicetax' => 'unique:gms_customer,cust_la_servicetax|regex:/^[A-Z0-9]+$/',
-            'pincode_value' => 'numeric|size:6',
-            'cust_ad_account_no' => 'numeric|size:11',
-            'cust_ad_ifsc_code' => 'numeric|size:11'
+        //     'cust_email' => 'required|email:rfc,dns|unique:gms_customer,cust_email',
+        //     'cust_pan' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_pan',
+        //     'cust_phone' => 'required|regex:/^[A-Z0-9]+$/|size:10|unique:gms_customer,cust_phone',
+        //     'cust_la_pan' => 'unique:gms_customer,cust_la_pan|regex:/^[A-Z0-9]+$/|size:10',
+        //     'cust_la_servicetax' => 'unique:gms_customer,cust_la_servicetax|regex:/^[A-Z0-9]+$/',
+        //     'pincode_value' => 'numeric|size:6',
+        //     'cust_ad_account_no' => 'numeric|size:11',
+        //     'cust_ad_ifsc_code' => 'numeric|size:11'
 
 
-        ]);
-        if ($validator->fails()) {
-            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
-        }
+        // ]);
+        // if ($validator->fails()) {
+        //     return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        // }
 
         $customer = GmsCustomer::insert([
-
             'cust_type' => $request->cust_type,
             'cust_bill_right' => $request->cust_bill_right,
             'cust_rep_office' => $request->cust_rep_office,
             'cust_cd_mkt_exex' => $request->cust_cd_mkt_exex,
-            'cust_reach' =>  $request->cust_reach,
+            'cust_reach' => $request->cust_reach,
             'cust_code' => $request->cust_code,
-            'monthly_bill_type' =>$request->monthly_bill_type,
+            'monthly_bill_type' => $request->monthly_bill_type,
+            'date_of_bill' => $request->date_of_bill,
             'service_courier' => $request->service_courier,
             'service_logistics' => $request->service_logistics,
             'service_gold' => $request->service_gold,
@@ -492,7 +480,7 @@ class CustomerController extends Controller
             'service_international' => $request->service_international,
             'sms_status' => $request->sms_status,
             'email_status' => $request->email_status,
-            'service_reverse_booking'=> $request->service_reverse_booking  ,
+            'service_reverse_booking' => $request->service_reverse_booking,
             'gst_applicable' => $request->gst_applicable,
             'gst_number' => $request->gst_number,
             'gst_type' => $request->gst_type,
@@ -522,9 +510,41 @@ class CustomerController extends Controller
             'user_id' => $sessionObject->admin_id,
 
         ]);
-         return $customer;
+        return $this->successResponse(self::CODE_OK, "Add Successfully!!", $customer);
     }
 
+
+    public function getExeList()
+    {                                                                                //Office Session add here
+        $getExeList = GmsEmp::where('emp_dsg', 'EXE')->where('is_deleted', 0)->where('emp_rep_office', 'BLRRO')->select('emp_code AS value',
+            DB::raw('concat(emp_code, "(",emp_name,")")As label'))->get();
+        $data['label'] = 'marketing_exe';
+        $data['options'] = $getExeList;
+        $collection = new Collection([$data]);
+        return $collection;
+    }
+
+    public function getCustCode()
+    {
+        $validator = Validator::make($this->request->all(), [
+            'cust_type' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $cust = GmsCustomer::latest('id')->where('cust_type', $this->request->cust_type)->where('cust_num', '!=', 'NULL')->first();
+        if (isset($cust->cust_num)) {
+            $new_num = $cust->cust_num + 1;
+        } else {
+            $new_num = 1;
+        }
+        $data['cust_code'] = $admin->city . $this->request->cust_type . $new_num;
+        $data['cust_num'] = $new_num;
+        return $data;
+
+    }
 
     /**
      * @OA\Post(
@@ -941,7 +961,6 @@ class CustomerController extends Controller
         $editCustomer->update($data);
         return $this->successResponse(self::CODE_OK, "Update Successfully!!", $editCustomer);
 
-
     }
 
 
@@ -988,15 +1007,15 @@ class CustomerController extends Controller
     public function viewAllCustomer(Request $request)
     {
         $sessionObject = session()->get('session_token');
-        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted',0)->first();
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
         $gmsCustomer = GmsCustomer::
         select('gms_customer.id', 'gms_customer.cust_name', 'gms_customer.cust_code', 'gms_customer.cust_type', 'gms_customer.cust_city', 'gms_customer.email_status', 'gms_customer.sms_status', 'gms_customer.approved_status', 'gms_city.state_code')
             ->leftJoin("gms_city", "gms_city.city_code", "=", "gms_customer.cust_city")
             ->where('gms_customer.is_deleted', 0);
-            //->where('user_id',$sessionObject->admin_id );
-          //  ->where('created_office_code',$office_code->created_office_code);
+        //->where('user_id',$sessionObject->admin_id );
+        //  ->where('created_office_code',$office_code->created_office_code);
 
         if ($request->has('q')) {
             $q = $request->q;
@@ -1007,7 +1026,6 @@ class CustomerController extends Controller
         $gmsCustomer->orderBy('id', 'desc');
         return $gmsCustomer->paginate($request->per_page);
     }
-
 
     /**
      * @OA\Post(
@@ -1052,7 +1070,7 @@ class CustomerController extends Controller
     public function customerTransfer()
     {
         $input = $this->request->all();
-        $getBookCatRange = GmsCustomer::where('cust_type', $input['cust_type'])->where('cust_code', $input['cust_code'])->where('cust_rep_office',$input['cust_rep_office'])->where('is_deleted', 0)->first();
+        $getBookCatRange = GmsCustomer::where('cust_type', $input['cust_type'])->where('cust_code', $input['cust_code'])->where('cust_rep_office', $input['cust_rep_office'])->where('is_deleted', 0)->first();
         if (!empty($getBookCatRange)) {
             $getBookCatRange->cust_type = $input['cust_type'];
             $getBookCatRange->cust_code = $input['cust_code'];
@@ -1067,10 +1085,10 @@ class CustomerController extends Controller
     public function viewCusTransfer()
     {
         $sessionObject = session()->get('session_token');
-        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted',0)->first();
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
-        $getCusTransfer = GmsCustomer::select('cust_type','cust_code','cust_rep_office')->where('created_office_code','BLRAPX')->where('is_deleted', 0)->get();
+        $getCusTransfer = GmsCustomer::select('cust_type', 'cust_code', 'cust_rep_office')->where('created_office_code', 'BLRAPX')->where('is_deleted', 0)->get();
         return $getCusTransfer;
     }
 
@@ -1324,17 +1342,14 @@ class CustomerController extends Controller
         return $data = $gmsCusFra->paginate($request->per_page);
     }
 
-
     public function viewFranchiseeDetails(Request $request)
     {
         $customerFranchisee = GmsCustomerFranchisee::where('is_deleted', 0)->select('fran_cust_code', 'cust_code', 'fran_cust_name', 'entry_date');
-
         if ($request->has('q')) {
             $q = $request->q;
             $customerFranchisee->where('fran_cust_code', 'LIKE', '%' . $q . '%')
                 ->orWhere('cust_code', 'LIKE', '%' . $q . '%')
                 ->orWhere('fran_cust_name', 'LIKE', '%' . $q . '%');
-
         }
         $customerFranchisee->orderBy('id', 'desc');
         return $customerFranchisee->paginate($request->per_page);
@@ -1656,7 +1671,6 @@ class CustomerController extends Controller
         return $data = $cust->paginate($request->per_page);
     }
 
-
     public function exportCustomer()
     {
         return Excel::download(new CustomersExport, 'customers.xlsx');
@@ -1750,7 +1764,7 @@ class CustomerController extends Controller
 
     public function viewAllRoColoader()
     {
-        $viewRoColoader = GmsColoader::where('coloader_code','coloader_name','coloader_type')->where('is_deleted', 0)->where('coloader_ro', 'BLRRO')->where('status', 'A')->get();
+        $viewRoColoader = GmsColoader::select('id', 'coloader_code', 'coloader_name', 'coloader_type')->where('is_deleted', 0)->where('coloader_ro', 'BLRRO')->where('status', 'A')->latest('id')->get();
         return $viewRoColoader;
     }
 
@@ -1771,14 +1785,60 @@ class CustomerController extends Controller
 
     public function addColoader()
     {
-         $sessionObject = session()->get('session_token');
+        $sessionObject = session()->get('session_token');
         $input = $this->request->all();
         $input['user_id'] = $sessionObject->admin_id;
-       
+        $type = explode(',', $input['coloader_type']);
+        $input['status'] = "A";
         $addColoader = new GmsColoader($input);
         $addColoader->save();
         return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addColoader);
     }
 
+    public function getColoaderCode()
+    {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
 
+        $cust = GmsColoader::latest('id')->where('is_deleted', 0)->first();
+        if (!empty($cust)) {
+            $data['cust_code'] = $admin->city . "CDR" . $cust->id;
+        } else {
+            $data['cust_code'] = $admin->city . "CDR" . '1';
+        }
+        return $data;
+    }
+
+    public function getReportingOffice()
+    {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $getReportingOffice = GmsOffice::where('office_type', 'BO')->where('is_deleted', 0)->select('office_code as value', DB::raw('CONCAT(office_code, " - ", office_name," (",office_city,")") As label'),)->get();
+
+        $data['label'] = 'reportingOffice';
+        $data['options'] = $getReportingOffice;
+        $collection = new Collection([$data]);
+        return $collection;
+    }
+
+    public function updateCityCustomer(Request $request)
+    {
+        $validator = Validator::make($this->request->all(), [
+            'id' => 'required|exists:gms_customer,id',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $adminSession = session()->get('session_token');
+        $input = $this->request->all();
+        $updatecust = GmsCustomer::where('id', $input['id'])->where('is_deleted', 0)->first();
+        if ($updatecust) {
+            $editcust = GmsCustomer::find($updatecust->id);
+            $editcust->update($input);
+            return $this->successResponse(self::CODE_OK, "Updated Successfully!!", $editcust);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
+        }
+
+    }
 }

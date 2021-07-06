@@ -11,8 +11,8 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class CustomersExport implements FromCollection, WithHeadings
 {
     /**
-    * @return \Illuminate\Support\Collection
-    */
+     * @return \Illuminate\Support\Collection
+     */
     public function collection()
     {
         if (session()->has('session_token')) {
@@ -27,19 +27,16 @@ class CustomersExport implements FromCollection, WithHeadings
                 'cust_city',
                 'email_status',
                 'sms_status',
-                'approved_status')->where('is_deleted', 0)->get();
-
+                'approved_status')->get();
             return $CusDetails;
         } else {
             return "Session not found.";
-
         }
     }
 
     public function headings(): array
     {
         return [
-        	
             'SL.NO',
             'CUST CODE',
             'CUST NAME',
@@ -48,7 +45,6 @@ class CustomersExport implements FromCollection, WithHeadings
             'EMAIL STATUS',
             'SMS STATUS',
             'APPROVED STATUS',
-            
         ];
     }
 }

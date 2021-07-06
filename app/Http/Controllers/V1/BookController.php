@@ -384,8 +384,6 @@ class BookController extends Controller
         $addBookBoTransfer->save();
         return $this->successResponse(self::CODE_OK, "Book Out Transfer Successfully!!", $addBookBoTransfer);
     }
-
-
     /**
      * @OA\Post(
      * path="/viewRoBook",
@@ -642,6 +640,25 @@ class BookController extends Controller
         return $this->successResponse(self::CODE_OK, "Book Details Added Successfully!!", $addBookDtls);
     }
 
+    public function updateStockStatus()
+    {
+        $validator = Validator::make($this->request->all(), [
+            'id' => 'required|exists:gms_book_cust_issue,id',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $adminSession = session()->get('session_token');
+        $input = $this->request->all();
+        $update = GmsBookCustIssue::where('id', $input['id'])->where('is_deleted', 0)->first();
+        if ($update) {
+            $edit = GmsBookCustIssue::find($update->id);
+            $edit->update($input);
+            return $this->successResponse(self::CODE_OK, "Updated Successfully!!", $edit);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
+        }
+    }
 
     /**
      * @OA\Post(
@@ -1093,7 +1110,6 @@ class BookController extends Controller
 
         $validator = Validator::make($this->request->all(), [
             'description' => 'required'
-
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
@@ -1110,7 +1126,6 @@ class BookController extends Controller
         return $this->successResponse(self::CODE_OK, "Book Return Successfully!!", $addBookBoReturn);
 
     }
-
 
     public function getRoOffice()
     {
@@ -1138,14 +1153,13 @@ class BookController extends Controller
     public function onlyBoOffice()
     {
         $getBoOffice = GmsOffice::select(
-            DB::raw('CONCAT(office_name,"(",office_code,")") AS originBo')
-        );
-        $getBoOffice->where('office_type', "BO");
-        $getBoOffice->where('is_deleted', 0);
-        $query2 = $getBoOffice->get()->toArray();
-        return $query2;
+            'office_code AS value',
+            DB::raw('CONCAT(office_name,"(",office_code,")") AS originBo'))->where('office_type', "BO")->where('is_deleted', 0)->get();
+        $data['label'] = 'value';
+        $data['options'] = $getBoOffice;
+        $collection = new Collection([$data]);
+        return $collection;
     }
-
 
     public function searchBookingDetails(Request $request)
     {
@@ -1158,13 +1172,11 @@ class BookController extends Controller
         $dataSearch = GmsBookingDtls::select('book_mfno as booking_mf_no',
             'book_cust_type as customer',
             'book_mfdate as booking_date',
-
             DB::raw('COUNT(book_cnno) as total_cnno'),
             DB::raw('SUM(book_weight) as total_weight'),
             DB::raw('SUM(book_pcs) as total_pcs'),
             DB::raw('SUM(book_billamt) as total_amount')
         );
-
         $dataSearch->where('is_deleted', 0);
         $dataSearch->groupBy('book_mfno');
 
@@ -1188,7 +1200,9 @@ class BookController extends Controller
 
     public function viewAllCustBookIssue(Request $request)
     {
-        $gmsAllCustBookIssue = GmsBookCustIssue::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_book_cust_issue.cust_code')->select('gms_book_cust_issue.id', 'gms_book_cust_issue.cust_code', 'gms_customer.cust_la_ent as cust_name', 'gms_book_cust_issue.cnno_start', 'gms_book_cust_issue.cnno_end', 'gms_book_cust_issue.qauantity', 'gms_book_cust_issue.rate_per_cnno', 'gms_book_cust_issue.entry_date');
+        $gmsAllCustBookIssue = GmsBookCustIssue::leftjoin('gms_customer', 'gms_customer.cust_code', '=', 'gms_book_cust_issue.cust_code')->select('gms_book_cust_issue.id',
+            DB::raw('CONCAT("STN",gms_book_cust_issue.iss_bo_id) AS issue_no'),
+            'gms_book_cust_issue.cust_code', 'gms_customer.cust_la_ent as cust_name', 'gms_book_cust_issue.cnno_start', 'gms_book_cust_issue.cnno_end', 'gms_book_cust_issue.qauantity', 'gms_book_cust_issue.rate_per_cnno', 'gms_book_cust_issue.entry_date');
         return $gmsAllCustBookIssue->paginate($request->per_page);
     }
 
@@ -1470,7 +1484,6 @@ class BookController extends Controller
         $adminSession = session()->get('session_token');
         $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
         $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
-
         $bookIssueSTN = GmsBookBoissue::latest('id')->first();
         if (isset($bookIssueSTN->id)) {
             $new_num = $bookIssueSTN->id + 1;
@@ -1495,14 +1508,11 @@ class BookController extends Controller
         $adminSession = session()->get('session_token');
         $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
         $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
-
         $validator = Validator::make($this->request->all(), [
             'iss_ro_id' => 'required',
             'cnno_start' => 'required',
             'cnno_end' => 'required',
             'dest_office_code' => 'required',
-
-
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
@@ -1520,17 +1530,12 @@ class BookController extends Controller
 
         $addGmsBookRoTransfer = new GmsBookRoTransfer($input);
         $addGmsBookRoTransfer->save();
-
         if (isset($addGmsBookRoTransfer)) {
-
             return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addGmsBookRoTransfer);
-
         } else {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Somethng went wrong!!');
         }
-
     }
-
 
     public function viewOutTransferRO(Request $request)
     {
@@ -1653,14 +1658,12 @@ class BookController extends Controller
         $adminSession = session()->get('session_token');
         $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
         $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
-
         $gmsOutBookRoTransfer = GmsBookRoTransfer::where('is_deleted', 0)->select('id',
             DB::raw('CONCAT("RO-STN",id) AS type'),
             'description', 'cnno_start', 'cnno_end', DB::raw(' "RETURN TO RO" as type2'), 'entry_date AS entered_date', 'status')->where('tranfer_type', 'R')
             /*->where('office_code', $admin->office_code)*/
             ->orderBy('id', 'DESC');
         return $gmsOutBookRoTransfer->paginate($request->per_page);
-
     }
 
     public function deleteTransfer()
@@ -1718,13 +1721,10 @@ class BookController extends Controller
         $addGmsBookRoTransfer->save();
 
         if (isset($addGmsBookRoTransfer)) {
-
             return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addGmsBookRoTransfer);
-
         } else {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Somethng went wrong!!');
         }
-
     }
 
     public function viewCustBookReturnRO(Request $request)
@@ -1952,7 +1952,6 @@ class BookController extends Controller
         return $gmsGmsBookBlock->paginate($request->per_page);
     }
 
-
     public function viewBookBlockDetailsRo()
     {
         $input = $this->request->all();
@@ -1960,13 +1959,12 @@ class BookController extends Controller
         $adminSession = session()->get('session_token');
         $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
         $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
-
         $getstock_cnno = GmsCnnoStock::select('stock_cnno', 'booked_status')->where('iss_block_id', $input['iss_block_id'])->get()->toArray();
 
-        print_r($getstock_cnno);exit();
+//        print_r($getstock_cnno);
+//        exit();
         return $getstock_cnno;
     }
-
 
     public function updateBookBlockStatus()
     {
@@ -1976,7 +1974,7 @@ class BookController extends Controller
 
         $validator = Validator::make($this->request->all(), [
             'id' => 'required|exists:gms_book_block,id',
-            'status'=>'required'
+            'status' => 'required'
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
@@ -2006,8 +2004,8 @@ class BookController extends Controller
         }
         $input = $this->request->all();
         $getGmsBookBlock = GmsBookBlock::where('id', $input['id'])
-        /*->where('office_code', $admin->office_code)*/
-        ->where('is_deleted', 0)->first();
+            /*->where('office_code', $admin->office_code)*/
+            ->where('is_deleted', 0)->first();
         if ($getGmsBookBlock != null) {
             $getGmsBookBlock->is_deleted = 1;
             $getGmsBookBlock->save();

@@ -15,7 +15,7 @@ class BulkExport implements FromCollection, WithHeadings
      */
     public function collection()
     {
-      if (session()->has('session_token')) {
+        if (session()->has('session_token')) {
             $adminSession = session()->get('session_token');
             $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
             $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
@@ -36,7 +36,7 @@ class BulkExport implements FromCollection, WithHeadings
                 'emp_status',
                 'emp_dor',
                 'emp_rep_offtype',
-              'emp_rep_office',)->where('is_deleted', 0)->get();
+                'emp_rep_office',)->where('is_deleted', 0)->get();
 
             return $empDetails;
         } else {
@@ -44,6 +44,7 @@ class BulkExport implements FromCollection, WithHeadings
 
         }
     }
+
     public function headings(): array
     {
         return [

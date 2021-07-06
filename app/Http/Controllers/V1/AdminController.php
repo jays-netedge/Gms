@@ -3295,134 +3295,191 @@ class AdminController extends Controller
         $getGmsInvoice->select(
             'branch_ro',
             'fr_invoice_no',
-            DB::raw('DATE_FORMAT(created_at, "%b, %Y") as invoice_date')
+            DB::raw('DATE_FORMAT(created_at, "%b, %Y") as invoice_date'),
+            'invoice_date as full_date'
         );
         $getGmsInvoice->groupBy('branch_ro', 'invoice_date');
         $getGmsInvoice->where('is_deleted', 0);
         if ($request->isMethod('get')) {
             return $getGmsInvoice->paginate($request->per_page);
         } else {
+
+            $title = GmsInvoice::select('fr_invoice_no')->where('invoice_date', $input['invoice_date'])->where('is_deleted', 0)->first();
+
+            $total[] = GmsInvoice::select(
+
+                DB::raw("IFNULL((SELECT count(total_cnno) from gms_invoice), 0) as total_cnno"),
+                DB::raw("IFNULL((SELECT count(total_weight) from gms_invoice), 0) as total_wt"),
+                DB::raw("IFNULL((SELECT count(grand_total) from gms_invoice), 0) as total_amt"),
+            )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
+
             $chero[] = GmsInvoice::select(
                 DB::raw("IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = 'CHERO'), 0) as total_cnno"),
                 DB::raw("IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = 'CHERO'), 0) as total_wt"),
                 DB::raw("IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = 'CHERO'), 0) as total_amt"),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $hydro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "HYDRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "HYDRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "HYDRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $delro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "DELRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "DELRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "DELRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $amdro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "AMDRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "AMDRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "AMDRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $ccuro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "CCURO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "CCURO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "CCURO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $ngpro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "NGPRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "NGPRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "NGPRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $mumro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "MUMRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "MUMRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "MUMRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $pnqro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "PNQRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "PNQRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "PNQRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $cokro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "COKRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "COKRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "COKRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $rairo[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "RAIRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "RAIRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "RAIRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $jairo[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "JAIRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "JAIRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "JAIRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $gauro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "GAURO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "GAURO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "GAURO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $vjaro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "VJARO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "VJARO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "VJARO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $denro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "DENRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "DENRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "DENRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $kolro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "KOLRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "KOLRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "KOLRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $bomro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "BOMRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "BOMRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "BOMRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $pnero[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "PNERO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "PNERO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "PNERO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $patro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "PATRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "PATRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "PATRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $bbsro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "BBSRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "BBSRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "BBSRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
             $bhpro[] = GmsInvoice::select(
                 DB::raw('IFNULL((SELECT count(total_cnno) from gms_invoice WHERE branch_code = "BHPRO"), 0) as total_cnno'),
                 DB::raw('IFNULL((SELECT count(total_weight) from gms_invoice WHERE branch_code = "BHPRO"), 0) as total_wt'),
                 DB::raw('IFNULL((SELECT count(grand_total) from gms_invoice WHERE branch_code = "BHPRO"), 0) as total_amt'),
+
             )->where('invoice_date', $input['invoice_date'])->groupBy('total_cnno', 'total_weight', 'grand_total')->first();
-            return $this->successResponse(self::CODE_OK, ["CHERO" => $chero,
-                "HYDRO" => $hydro,
-                "DELRO" => $delro,
-                "AMDRO" => $amdro,
-                "CCURO" => $ccuro,
-                "NGPRO" => $ngpro,
-                "MUMRO" => $mumro,
-                "PNQRO" => $pnqro,
-                "COKRO" => $cokro,
-                "RAIRO" => $rairo,
-                "JAIRO" => $jairo,
-                "GAURO" => $gauro,
-                "VJARO" => $vjaro,
-                "DENRO" => $denro,
-                "KOLRO" => $kolro,
-                "BOMRO" => $bomro,
-                "PNERO" => $pnero,
-                "PATRO" => $patro,
-                "BBSRO" => $bbsro,
-                "BHPRO" => $bhpro
-            ]);
+
+            // $data['title'] =  $title->fr_invoice_no;
+            // $data1['total'] = $total;
+            $data2['title'] = 'CHERO';
+            $data2['data'] = $chero;
+            $data3['title'] = 'HYDRO';
+            $data3['data'] = $hydro;
+            $data4['title'] = 'DELRO';
+            $data4['data'] = $delro;
+            $data5['title'] = 'AMDRO';
+            $data5['data'] = $amdro;
+            $data6['title'] = 'CCURO';
+            $data6['data'] = $ccuro;
+            $data7['title'] = 'NGPRO';
+            $data7['data'] = $ngpro;
+            $data8['title'] = 'MUMRO';
+            $data8['data'] = $mumro;
+            $data9['title'] = 'PNQRO';
+            $data9['data'] = $pnqro;
+            $data10['title'] = 'COKRO';
+            $data10['data'] = $cokro;
+            $data11['title'] = 'RAIRO';
+            $data11['data'] = $rairo;
+            $data12['title'] = 'JAIRO';
+            $data12['data'] = $jairo;
+            $data13['title'] = 'GAURO';
+            $data13['data'] = $gauro;
+            $data14['title'] = 'VJARO';
+            $data14['data'] = $vjaro;
+            $data15['title'] = 'DENRO';
+            $data15['data'] = $denro;
+            $data16['title'] = 'KOLRO';
+            $data16['data'] = $kolro;
+            $data17['title'] = 'BOMRO';
+            $data17['data'] = $bomro;
+            $data18['title'] = 'PNERO';
+            $data18['data'] = $pnero;
+            $data19['title'] = 'PATRO';
+            $data19['data'] = $patro;
+            $data20['title'] = 'BBSRO';
+            $data20['data'] = $bbsro;
+            $data21['title'] = 'BHPRO';
+            $data21['data'] = $bhpro;
+
+
+            $collection = new Collection(["title" => $title->fr_invoice_no, "total" => $total, "data" => [$data2, $data3, $data4, $data5, $data6, $data7, $data8, $data9, $data10, $data11, $data12, $data13, $data14, $data15, $data16, $data17, $data18, $data19, $data20, $data21]]);
+            return $this->successResponse(self::CODE_OK, "Successfully Bill Genrate", $collection);
         }
     }
 
