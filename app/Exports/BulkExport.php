@@ -20,7 +20,7 @@ class BulkExport implements FromCollection, WithHeadings
             $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
             $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
             $empDetails = GmsEmp::where('emp_rep_office', $office_code->office_code)->select(
-                'id',
+                'emp_id',
                 'emp_code',
                 'emp_name',
                 'emp_add1',

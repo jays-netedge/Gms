@@ -24,6 +24,7 @@ use App\Exports\CustomersExport;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Image;
+use Carbon\Carbon;
 
 
 class CustomerController extends Controller
@@ -381,7 +382,7 @@ class CustomerController extends Controller
 
             'cust_type' => $request->cust_type,
             'cust_code' => $request->cust_code,
-            'user_id' => $sessionObject->id,
+            'user_id' => $sessionObject->admin_id,
             'sms_status' => $request->sms_status,
             'email_status' => $request->email_status,
             'multi_region' => $request->multi_region,
@@ -543,7 +544,6 @@ class CustomerController extends Controller
         $data['cust_code'] = $admin->city . $this->request->cust_type . $new_num;
         $data['cust_num'] = $new_num;
         return $data;
-
     }
 
     /**
@@ -786,181 +786,292 @@ class CustomerController extends Controller
 
     public function editCustomer(Request $request)
     {
-
-        $validatedData = $request->validate([
-            'pan_card' => 'image|mimes:jpeg,jpg,png,gif',
-            'passport_copy' => 'image|mimes:jpeg,jpg,png,gif',
-            'driving_license' => 'image|mimes:jpeg,jpg,png,gif',
-            'st_reg_certficate' => 'image|mimes:jpeg,jpg,png,gif',
-            'aadhaar_card' => 'image|mimes:jpeg,jpg,png,gif',
-            'voter_id' => 'image|mimes:jpeg,jpg,png,gif',
-            'telephone_bill' => 'image|mimes:jpeg,jpg,png,gif',
-            'photo' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo1' => 'image|mimes:jpeg,jpg,png,gif',
-            'gallery_photo2' => 'image|mimes:jpeg,jpg,png,gif',
-        ]);
-        $getCustomer = GmsCustomer::where('id', $request->id)->where('is_deleted', 0)->first();
         $sessionObject = session()->get('session_token');
-        $editCustomer = GmsCustomer::find($getCustomer->id);
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
-        if ($request->hasfile('telephone_bill')) {
-            $image = $request->file('telephone_bill');
-            $image_ext = $image->getClientOriginalExtension();
-            $telephone_bill = rand(123456, 999999) . "." . $image_ext;
-            $data['telephone_bill'] = $telephone_bill;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $telephone_bill);
-        }
+        // $validatedData = $request->validate([
+        //     'pan_card' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'passport_copy' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'driving_license' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'st_reg_certficate' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'aadhaar_card' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'voter_id' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'telephone_bill' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'photo' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'gallery_photo' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'gallery_photo1' => 'image|mimes:jpeg,jpg,png,gif',
+        //     'gallery_photo2' => 'image|mimes:jpeg,jpg,png,gif',
+        // ]);
 
-        if ($request->hasfile('voter_id')) {
-            $image = $request->file('voter_id');
-            $image_ext = $image->getClientOriginalExtension();
-            $voter_id = rand(123456, 999999) . "." . $image_ext;
-            $data['voter_id'] = $voter_id;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $voter_id);
-        }
-        if ($request->hasfile('aadhaar_card')) {
-            $image = $request->file('aadhaar_card');
-            $image_ext = $image->getClientOriginalExtension();
-            $aadhaar_card = rand(123456, 999999) . "." . $image_ext;
-            $data['aadhaar_card'] = $aadhaar_card;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $aadhaar_card);
-        }
-        if ($request->hasfile('st_reg_certficate')) {
-            $image = $request->file('st_reg_certficate');
-            $image_ext = $image->getClientOriginalExtension();
-            $st_reg_certficate = rand(123456, 999999) . "." . $image_ext;
-            $data['st_reg_certficate'] = $st_reg_certficate;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $st_reg_certficate);
-        }
+        $getCustomer = GmsCustomer::where('id', $request->id)->where('gms_customer.user_id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        if (isset($getCustomer->id)) {
 
-        if ($request->hasfile('driving_license')) {
-            $image = $request->file('driving_license');
-            $image_ext = $image->getClientOriginalExtension();
-            $driving_license = rand(123456, 999999) . "." . $image_ext;
-            $data['driving_license'] = $driving_license;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $driving_license);
-        }
-        if ($request->hasfile('passport_copy')) {
-            $image = $request->file('passport_copy');
-            $image_ext = $image->getClientOriginalExtension();
-            $passport_copy = rand(123456, 999999) . "." . $image_ext;
-            $data['passport_copy'] = $passport_copy;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $passport_copy);
-        }
-        if ($request->hasfile('pan_card')) {
-            $image = $request->file('pan_card');
-            $image_ext = $image->getClientOriginalExtension();
-            $pan_card = rand(123456, 999999) . "." . $image_ext;
-            $data['pan_card'] = $pan_card;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $pan_card);
-        }
-        if ($request->hasfile('photo')) {
-            $image = $request->file('photo');
-            $image_ext = $image->getClientOriginalExtension();
-            $photo = rand(123456, 999999) . "." . $image_ext;
-            $data['photo'] = $photo;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $photo);
-        }
-        if ($request->hasfile('gallery_photo')) {
-            $image = $request->file('gallery_photo');
-            $image_ext = $image->getClientOriginalExtension();
-            $gallery_photo = rand(123456, 999999) . "." . $image_ext;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $gallery_photo);
-        }
-        if ($request->hasfile('gallery_photo1')) {
-            $image = $request->file('gallery_photo1');
-            $image_ext = $image->getClientOriginalExtension();
-            $gallery_photo1 = rand(123456, 999999) . "." . $image_ext;
-            $data['gallery_photo1'] = $gallery_photo1;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $gallery_photo1);
-        }
-        if ($request->hasfile('gallery_photo2')) {
-            $image = $request->file('gallery_photo2');
-            $image_ext = $image->getClientOriginalExtension();
-            $gallery_photo2 = rand(123456, 999999) . "." . $image_ext;
-            $data['gallery_photo2'] = $gallery_photo2;
-            $destination_path = public_path('/customer');
-            $image->move($destination_path, $gallery_photo2);
-        }
+            $editCustomer = GmsCustomer::find($getCustomer->id);
 
-        $editCustomer->user_id = $sessionObject->id;
-        $editCustomer->cust_type = $request->cust_type;
-        $editCustomer->cust_code = $request->cust_code;
-        $editCustomer->user_id = $sessionObject->id;
-        $editCustomer->sms_status = $request->sms_status;
-        $editCustomer->email_status = $request->email_status;
-        $editCustomer->multi_region = $request->multi_region;
-        $editCustomer->cust_la_ent = $request->cust_la_ent;
-        $editCustomer->cust_location = $request->cust_location;
-        $editCustomer->monthly_bill_type = $request->monthly_bill_type;
-        $editCustomer->service_courier = $request->service_courier;
-        $editCustomer->service_logistics = $request->service_logistics;
-        $editCustomer->service_gold = $request->service_gold;
-        $editCustomer->cust_account_type = $request->cust_account_type;
-        $editCustomer->cust_la_address = $request->cust_la_address;
-        $editCustomer->cust_la_pan = $request->cust_la_pan;
-        $editCustomer->cust_la_servicetax = $request->cust_la_servicetax;
-        $editCustomer->service_intracity = $request->service_intracity;
-        $editCustomer->service_international = $request->service_international;
-        $editCustomer->gst_applicable = $request->gst_applicable;
-        $editCustomer->pincode_value = $request->pincode_value;
-        $editCustomer->cust_name = $request->cust_name;
-        $editCustomer->cust_dob = $request->cust_dob;
-        $editCustomer->cust_email = $request->cust_email;
-        $editCustomer->cust_education = $request->cust_education;
-        $editCustomer->cust_qualification = $request->cust_qualification;
-        $editCustomer->cust_residen_address = $request->cust_residen_address;
-        $editCustomer->cust_fat_wife_name = $request->cust_fat_wife_name;
-        $editCustomer->cust_pan = $request->cust_pan;
-        $editCustomer->cust_phone = $request->cust_phone;
-        $editCustomer->cust_cd_contact_name = $request->cust_cd_contact_name;
-        $editCustomer->cust_cd_contract_date = $request->cust_cd_contract_date;
-        $editCustomer->cust_cd_renewal_date = $request->cust_cd_renewal_date;
-        $editCustomer->cust_cd_exp_date = $request->cust_cd_exp_date;
-        $editCustomer->cust_cd_remarks = $request->cust_cd_remarks;
-        $editCustomer->cust_sd_fixed = $request->cust_sd_fixed;
-        $editCustomer->cust_pb_nature = $request->cust_pb_nature;
-        $editCustomer->cust_pb_empdeployed = $request->cust_pb_empdeployed;
-        $editCustomer->cust_pb_vehdeployed = $request->cust_pb_vehdeployed;
-        $editCustomer->cust_pb_turnover = $request->cust_pb_turnover;
-        $editCustomer->cust_ad_bank_name = $request->cust_ad_bank_name;
-        $editCustomer->cust_ad_bank_branch = $request->cust_ad_bank_branch;
-        $editCustomer->cust_ad_account_no = $request->cust_ad_account_no;
-        $editCustomer->cust_ad_ifsc_code = $request->cust_ad_ifsc_code;
-        $editCustomer->cust_br_name = $request->cust_br_name;
-        $editCustomer->cust_br_address = $request->cust_br_address;
-        $editCustomer->cust_br_contact = $request->cust_br_contact;
-        $editCustomer->cust_br_name1 = $request->cust_br_name1;
-        $editCustomer->cust_br_address1 = $request->cust_br_address1;
-        $editCustomer->cust_br_contact1 = $request->cust_br_contact1;
-        $editCustomer->telephone_bill = isset($telephone_bill) ? $telephone_bill : '';
-        $editCustomer->aadhaar_card = isset($aadhaar_card) ? $aadhaar_card : '';
-        $editCustomer->voter_id = isset($voter_id) ? $voter_id : '';
-        $editCustomer->st_reg_certficate = isset($st_reg_certficate) ? $st_reg_certficate : '';
-        $editCustomer->driving_license = isset($driving_license) ? $driving_license : '';
-        $editCustomer->passport_copy = isset($passport_copy) ? $passport_copy : '';
-        $editCustomer->pan_card = isset($pan_card) ? $pan_card : '';
-        $editCustomer->photo = isset($photo) ? $photo : '';
-        $editCustomer->gallery_photo = isset($gallery_photo) ? $gallery_photo : '';
-        $editCustomer->gallery_photo1 = isset($gallery_photo1) ? $gallery_photo1 : '';
-        $editCustomer->gallery_photo2 = isset($gallery_photo2) ? $gallery_photo2 : '';
-        $data[] = $editCustomer->toArray();
-        /*print_r($data);die;*/
+            if ($request->hasfile('telephone_bill')) {
+                $telephone_bill_parts = parse_url($editCustomer->telephone_bill);
+                $telephone_bill = basename($telephone_bill_parts["path"]); // this will return 'file.php'
 
-        $editCustomer->update($data);
-        return $this->successResponse(self::CODE_OK, "Update Successfully!!", $editCustomer);
+                if (file_exists(public_path('/customer/' . $telephone_bill)) && isset($telephone_bill)) {
+                    unlink(public_path('/customer/' . $telephone_bill));
+                }
+                $image = $request->file('telephone_bill');
+                $image_ext = $image->getClientOriginalExtension();
+                $telephone_bill = rand(123456, 999999) . "." . $image_ext;
+                $data['telephone_bill'] = $telephone_bill;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $telephone_bill);
+            }
 
+            if ($request->hasfile('voter_id')) {
+                $voter_id_parts = parse_url($editCustomer->voter_id);
+                $voter_id = basename($voter_id_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $voter_id)) && isset($voter_id)) {
+                    unlink(public_path('/customer/' . $voter_id));
+                }
+                $image = $request->file('voter_id');
+                $image_ext = $image->getClientOriginalExtension();
+                $voter_id = rand(123456, 999999) . "." . $image_ext;
+                $data['voter_id'] = $voter_id;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $voter_id);
+            }
+            if ($request->hasfile('aadhaar_card')) {
+                $aadhaar_card_parts = parse_url($editCustomer->aadhaar_card);
+                $aadhaar_card = basename($aadhaar_card_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $aadhaar_card)) && isset($aadhaar_card)) {
+                    unlink(public_path('/customer/' . $aadhaar_card));
+                }
+                $image = $request->file('aadhaar_card');
+                $image_ext = $image->getClientOriginalExtension();
+                $aadhaar_card = rand(123456, 999999) . "." . $image_ext;
+                $data['aadhaar_card'] = $aadhaar_card;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $aadhaar_card);
+            }
+            if ($request->hasfile('st_reg_certficate')) {
+                $st_reg_certficate_parts = parse_url($editCustomer->st_reg_certficate);
+                $st_reg_certficate = basename($st_reg_certficate_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $st_reg_certficate)) && isset($st_reg_certficate)) {
+                    unlink(public_path('/customer/' . $st_reg_certficate));
+                }
+                $image = $request->file('st_reg_certficate');
+                $image_ext = $image->getClientOriginalExtension();
+                $st_reg_certficate = rand(123456, 999999) . "." . $image_ext;
+                $data['st_reg_certficate'] = $st_reg_certficate;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $st_reg_certficate);
+            }
+
+            if ($request->hasfile('driving_license')) {
+                $driving_license_parts = parse_url($editCustomer->driving_license);
+                $driving_license = basename($driving_license_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $driving_license)) && isset($driving_license)) {
+                    unlink(public_path('/customer/' . $driving_license));
+                }
+                $image = $request->file('driving_license');
+                $image_ext = $image->getClientOriginalExtension();
+                $driving_license = rand(123456, 999999) . "." . $image_ext;
+                $data['driving_license'] = $driving_license;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $driving_license);
+            }
+            if ($request->hasfile('passport_copy')) {
+                $passport_copy_parts = parse_url($editCustomer->passport_copy);
+                $passport_copy = basename($passport_copy_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $passport_copy)) && isset($passport_copy) && !empty($passport_copy)) {
+                    unlink(public_path('/customer/' . $passport_copy));
+                }
+                $image = $request->file('passport_copy');
+                $image_ext = $image->getClientOriginalExtension();
+                $passport_copy = rand(123456, 999999) . "." . $image_ext;
+                $data['passport_copy'] = $passport_copy;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $passport_copy);
+            }
+            if ($request->hasfile('pan_card')) {
+                $pan_card_parts = parse_url($editCustomer->pan_card);
+                $pan_card = basename($pan_card_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $pan_card)) && isset($pan_card) && !empty($pan_card)) {
+                    unlink(public_path('/customer/' . $pan_card));
+                }
+                $image = $request->file('pan_card');
+                $image_ext = $image->getClientOriginalExtension();
+                $pan_card = rand(123456, 999999) . "." . $image_ext;
+                $data['pan_card'] = $pan_card;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $pan_card);
+            }
+            if ($request->hasfile('photo')) {
+                $photo_parts = parse_url($editCustomer->photo);
+                $photo = basename($photo_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $photo)) && isset($photo)) {
+                    unlink(public_path('/customer/' . $photo));
+                }
+                $image = $request->file('photo');
+                $image_ext = $image->getClientOriginalExtension();
+                $photo = rand(123456, 999999) . "." . $image_ext;
+                $data['photo'] = $photo;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $photo);
+            }
+            if ($request->hasfile('gallery_photo')) {
+                $gallery_photo_parts = parse_url($editCustomer->gallery_photo);
+                $gallery_photo = basename($gallery_photo_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $gallery_photo)) && isset($gallery_photo)) {
+                    unlink(public_path('/customer/' . $gallery_photo));
+                }
+                $image = $request->file('gallery_photo');
+                $image_ext = $image->getClientOriginalExtension();
+                $gallery_photo = rand(123456, 999999) . "." . $image_ext;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $gallery_photo);
+            }
+            if ($request->hasfile('gallery_photo1')) {
+                $gallery_photo1_parts = parse_url($editCustomer->gallery_photo1);
+                $gallery_photo1 = basename($gallery_photo1_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $gallery_photo1)) && isset($gallery_photo1)) {
+                    unlink(public_path('/customer/' . $gallery_photo1));
+                }
+                $image = $request->file('gallery_photo1');
+                $image_ext = $image->getClientOriginalExtension();
+                $gallery_photo1 = rand(123456, 999999) . "." . $image_ext;
+                $data['gallery_photo1'] = $gallery_photo1;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $gallery_photo1);
+            }
+            if ($request->hasfile('gallery_photo2')) {
+                $gallery_photo2_parts = parse_url($editCustomer->gallery_photo2);
+                $gallery_photo2 = basename($gallery_photo1_parts["path"]); // this will return 'file.php'
+
+                if (file_exists(public_path('/customer/' . $gallery_photo2)) && isset($gallery_photo2)) {
+                    unlink(public_path('/customer/' . $gallery_photo2));
+                }
+                $image = $request->file('gallery_photo2');
+                $image_ext = $image->getClientOriginalExtension();
+                $gallery_photo2 = rand(123456, 999999) . "." . $image_ext;
+                $data['gallery_photo2'] = $gallery_photo2;
+                $destination_path = public_path('/customer');
+                $image->move($destination_path, $gallery_photo2);
+            }
+
+            $editCustomer->user_id = $sessionObject->admin_id;
+            $editCustomer->cust_type = $request->cust_type;
+            $editCustomer->cust_code = $request->cust_code;
+            $editCustomer->sms_status = $request->sms_status;
+            $editCustomer->email_status = $request->email_status;
+            $editCustomer->multi_region = $request->multi_region;
+            $editCustomer->cust_la_ent = $request->cust_la_ent;
+            $editCustomer->cust_location = $request->cust_location;
+            $editCustomer->monthly_bill_type = $request->monthly_bill_type;
+            $editCustomer->service_courier = $request->service_courier;
+            $editCustomer->service_logistics = $request->service_logistics;
+            $editCustomer->service_gold = $request->service_gold;
+            $editCustomer->cust_account_type = $request->cust_account_type;
+            $editCustomer->cust_la_address = $request->cust_la_address;
+            $editCustomer->cust_la_pan = $request->cust_la_pan;
+            $editCustomer->cust_la_servicetax = $request->cust_la_servicetax;
+            $editCustomer->service_intracity = $request->service_intracity;
+            $editCustomer->service_international = $request->service_international;
+            $editCustomer->gst_applicable = $request->gst_applicable;
+            $editCustomer->pincode_value = $request->pincode_value;
+            $editCustomer->cust_name = $request->cust_name;
+            $editCustomer->cust_dob = $request->cust_dob;
+            $editCustomer->cust_email = $request->cust_email;
+            $editCustomer->cust_education = $request->cust_education;
+            $editCustomer->cust_qualification = $request->cust_qualification;
+            $editCustomer->cust_residen_address = $request->cust_residen_address;
+            $editCustomer->cust_fat_wife_name = $request->cust_fat_wife_name;
+            $editCustomer->cust_pan = $request->cust_pan;
+            $editCustomer->cust_phone = $request->cust_phone;
+            $editCustomer->cust_cd_contact_name = $request->cust_cd_contact_name;
+            $editCustomer->cust_cd_contract_date = $request->cust_cd_contract_date;
+            $editCustomer->cust_cd_renewal_date = $request->cust_cd_renewal_date;
+            $editCustomer->cust_cd_exp_date = $request->cust_cd_exp_date;
+            $editCustomer->cust_cd_remarks = $request->cust_cd_remarks;
+            $editCustomer->cust_sd_fixed = $request->cust_sd_fixed;
+            $editCustomer->cust_pb_nature = $request->cust_pb_nature;
+            $editCustomer->cust_pb_empdeployed = $request->cust_pb_empdeployed;
+            $editCustomer->cust_pb_vehdeployed = $request->cust_pb_vehdeployed;
+            $editCustomer->cust_pb_turnover = $request->cust_pb_turnover;
+            $editCustomer->cust_ad_bank_name = $request->cust_ad_bank_name;
+            $editCustomer->cust_ad_bank_branch = $request->cust_ad_bank_branch;
+            $editCustomer->cust_ad_account_no = $request->cust_ad_account_no;
+            $editCustomer->cust_ad_ifsc_code = $request->cust_ad_ifsc_code;
+            $editCustomer->cust_br_name = $request->cust_br_name;
+            $editCustomer->cust_br_address = $request->cust_br_address;
+            $editCustomer->cust_br_contact = $request->cust_br_contact;
+            $editCustomer->cust_br_name1 = $request->cust_br_name1;
+            $editCustomer->cust_br_address1 = $request->cust_br_address1;
+            $editCustomer->cust_br_contact1 = $request->cust_br_contact1;
+              if(isset($telephone_bill) && !empty($telephone_bill)){
+                $editCustomer->telephone_bill = $telephone_bill;
+            }
+            if(isset($aadhaar_card) && !empty($aadhaar_card)){
+                $editCustomer->aadhaar_card = $aadhaar_card;
+            }
+            if(isset($voter_id) && !empty($voter_id)){
+                $editCustomer->voter_id = $voter_id;
+            }
+            if(isset($st_reg_certficate) && !empty($st_reg_certficate)){
+                $editCustomer->st_reg_certficate = $st_reg_certficate;
+            }
+            if(isset($driving_license) && !empty($driving_license)){
+                $editCustomer->driving_license = $driving_license;
+            }
+            if(isset($passport_copy) && !empty($passport_copy)){
+                $editCustomer->passport_copy = $passport_copy;
+            }
+            if(isset($pan_card) && !empty($pan_card)){
+                $editCustomer->pan_card = $pan_card;
+            }
+            if(isset($photo) && !empty($photo)){
+                $editCustomer->photo = $photo;
+            }
+            if(isset($gallery_photo) && !empty($gallery_photo)){
+                $editCustomer->gallery_photo = $gallery_photo;
+            }
+            if(isset($gallery_photo1) && !empty($gallery_photo1)){
+                $editCustomer->gallery_photo1 = $gallery_photo1;
+            }
+            if(isset($gallery_photo2) && !empty($gallery_photo2)){
+                $editCustomer->gallery_photo2 = $gallery_photo2;
+            }
+            // $editCustomer->telephone_bill = isset($telephone_bill) ? $telephone_bill : '';
+            // $editCustomer->aadhaar_card = isset($aadhaar_card) ? $aadhaar_card : '';
+            // $editCustomer->voter_id = isset($voter_id) ? $voter_id : '';
+            // $editCustomer->st_reg_certficate = isset($st_reg_certficate) ? $st_reg_certficate : '';
+            // $editCustomer->driving_license = isset($driving_license) ? $driving_license : '';
+            // $editCustomer->passport_copy = isset($passport_copy) ? $passport_copy : '';
+            // $editCustomer->pan_card = isset($pan_card) ? $pan_card : '';
+            // $editCustomer->photo = isset($photo) ? $photo : '';
+            // $editCustomer->gallery_photo = isset($gallery_photo) ? $gallery_photo : '';
+            // $editCustomer->gallery_photo1 = isset($gallery_photo1) ? $gallery_photo1 : '';
+            // $editCustomer->gallery_photo2 = isset($gallery_photo2) ? $gallery_photo2 : '';
+            $data[] = $editCustomer->toArray();
+
+            $editCustomer->update($data);
+        }
+        if (empty($editCustomer)) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Updated Successfully!!", $editCustomer);
+        }
+    }
+
+    public function editCustomerRo()
+    {
+        
     }
 
 
@@ -1011,17 +1122,16 @@ class CustomerController extends Controller
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
         $gmsCustomer = GmsCustomer::
-        select('gms_customer.id', 'gms_customer.cust_name', 'gms_customer.cust_code', 'gms_customer.cust_type', 'gms_customer.cust_city', 'gms_customer.email_status', 'gms_customer.sms_status', 'gms_customer.approved_status', 'gms_city.state_code')
+        select('gms_customer.id', 'gms_customer.cust_la_ent', 'gms_customer.cust_code', 'gms_customer.cust_type', 'gms_customer.cust_city', 'gms_customer.email_status', 'gms_customer.sms_status', 'gms_customer.approved_status', 'gms_city.state_code')
             ->leftJoin("gms_city", "gms_city.city_code", "=", "gms_customer.cust_city")
-            ->where('gms_customer.is_deleted', 0);
-        //->where('user_id',$sessionObject->admin_id );
-        //  ->where('created_office_code',$office_code->created_office_code);
+            ->where('gms_customer.is_deleted', 0)
+            ->where('gms_customer.user_id', $sessionObject->admin_id)
+            ->where('gms_customer.created_office_code', $office_code->office_code);
 
         if ($request->has('q')) {
             $q = $request->q;
             $gmsCustomer->where('gms_customer.cust_name', 'LIKE', '%' . $q . '%')
                 ->orWhere('gms_customer.cust_code', 'LIKE', '%' . $q . '%');
-
         }
         $gmsCustomer->orderBy('id', 'desc');
         return $gmsCustomer->paginate($request->per_page);
@@ -1069,8 +1179,12 @@ class CustomerController extends Controller
 
     public function customerTransfer()
     {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
         $input = $this->request->all();
-        $getBookCatRange = GmsCustomer::where('cust_type', $input['cust_type'])->where('cust_code', $input['cust_code'])->where('cust_rep_office', $input['cust_rep_office'])->where('is_deleted', 0)->first();
+        $getBookCatRange = GmsCustomer::where('gms_customer.user_id', $sessionObject->admin_id)->where('cust_type', $input['cust_type'])->where('cust_code', $input['cust_code'])->where('is_deleted', 0)->first();
         if (!empty($getBookCatRange)) {
             $getBookCatRange->cust_type = $input['cust_type'];
             $getBookCatRange->cust_code = $input['cust_code'];
@@ -1088,7 +1202,7 @@ class CustomerController extends Controller
         $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
-        $getCusTransfer = GmsCustomer::select('cust_type', 'cust_code', 'cust_rep_office')->where('created_office_code', 'BLRAPX')->where('is_deleted', 0)->get();
+        $getCusTransfer = GmsCustomer::select('cust_type', 'cust_code', 'cust_rep_office')->where('user_id', $sessionObject->admin_id)->where('is_deleted', 0)->get();
         return $getCusTransfer;
     }
 
@@ -1172,7 +1286,6 @@ class CustomerController extends Controller
     {
         $session_token = session()->get('session_token');
         $user_type = Admin::where('id', $session_token->admin_id)->first();
-
         $input = $this->request->all();
         $custCodeArr = explode("_", $input['cust_code']);
         $cust_code = $custCodeArr[0];
@@ -1185,7 +1298,6 @@ class CustomerController extends Controller
         $addFranCus = new GmsCustomerFranchisee($input);
         $addFranCus->save();
         return $this->successResponse(self::CODE_OK, "Franchisee Customer Created Successfully!!", $addFranCus);
-
     }
 
 
@@ -1287,15 +1399,18 @@ class CustomerController extends Controller
         //     return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         // }
         $input = $this->request->all();
-        $getFraCustomer = GmsCustomerFranchisee::where('id', $input['fraCus_id'])->where('is_deleted', 0)->first();
+        $getFraCustomer = GmsCustomerFranchisee::where('id', $input['fraCus_id'])->where('user_id', $session_token->admin_id)->where('is_deleted', 0)->first();
         if ($getFraCustomer) {
             $editFraCustomer = GmsCustomerFranchisee::find($getFraCustomer->id);
             $custCodeArr = explode("_", $input['cust_code']);
             $cust_code = $custCodeArr[0];
             $city_code = $custCodeArr[1];
+
             $input['cust_code'] = $cust_code;
-            $input['fran_cust_code'] = "";
+            $input['fran_cust_code'] = $input['fran_cust_code'];
             $input['fran_cust_city'] = $city_code;
+            $input['user_id'] = $session_token->admin_id;
+            $input['entry_date'] = Carbon::now()->toDateTimeString();
             $editFraCustomer->update($input);
             return $this->successResponse(self::CODE_OK, "Franchisee Customer Update Successfully!!", $editFraCustomer);
         } else {
@@ -1332,19 +1447,22 @@ class CustomerController extends Controller
      */
     public function viewFranchiseeCus()
     {
+
         $viewFranchiseCus = GmsCustomer::where('cust_type', '=', 'CF')->select('cust_code', 'cust_la_ent', 'cust_city')->paginate(5)->all();
         return $this->successResponse(self::CODE_OK, "View Franchisee Customer Successfully!!", $viewFranchiseCus);
     }
 
     public function viewAllFranchisee(Request $request)
     {
-        $gmsCusFra = GmsCustomerFranchisee::select('fran_cust_code', 'cust_code', 'fran_cust_name', 'entry_date')->where('is_deleted', 0);
+        $session_token = session()->get('session_token');
+        $gmsCusFra = GmsCustomerFranchisee::select('id', 'fran_cust_code', 'cust_code', 'fran_cust_name', 'entry_date')->where('user_id', $session_token->admin_id)->where('is_deleted', 0);
         return $data = $gmsCusFra->paginate($request->per_page);
     }
 
     public function viewFranchiseeDetails(Request $request)
     {
-        $customerFranchisee = GmsCustomerFranchisee::where('is_deleted', 0)->select('fran_cust_code', 'cust_code', 'fran_cust_name', 'entry_date');
+        $session_token = session()->get('session_token');
+        $customerFranchisee = GmsCustomerFranchisee::where('user_id', $session_token->admin_id)->where('is_deleted', 0)->select('id', 'fran_cust_code', 'cust_code', 'fran_cust_name', 'created_at as entry_date');
         if ($request->has('q')) {
             $q = $request->q;
             $customerFranchisee->where('fran_cust_code', 'LIKE', '%' . $q . '%')
@@ -1364,7 +1482,7 @@ class CustomerController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $GmsCustomerFranchisee = GmsCustomerFranchisee::where('id', $input['fraCus_id'])->where('is_deleted', 0)->select('fran_cust_inc', 'cust_code', 'fran_cust_code', 'fran_cust_city', 'fran_cust_name')->paginate(5)->first();
+        $GmsCustomerFranchisee = GmsCustomerFranchisee::where('id', $input['fraCus_id'])->where('is_deleted', 0)->select('id', 'fran_cust_inc', 'cust_code', 'fran_cust_code', 'fran_cust_city', 'fran_cust_name')->paginate(5)->first();
         if (!$GmsCustomerFranchisee) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
         } else {
@@ -1619,28 +1737,28 @@ class CustomerController extends Controller
 
     public function getCustByCustType()
     {
+        
         $validator = Validator::make($this->request->all(), [
             'cust_id' => 'required|exists:gms_customer,cust_type',
-
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $getCustByCustType = GmsCustomer::where('is_deleted', 0)->where('cust_type', $input['cust_id'])->get();
+        $getCustByCustType = GmsCustomer::where('is_deleted', 0)->where('cust_type', $input['cust_id'])->select('cust_code as value', DB::raw('concat(cust_name,"(",cust_code,")") As label'))->orderBy('id', 'desc')->get();
 
-        if (!$getCustByCustType) {
-            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
-        } else {
-            return $this->successResponse(self::CODE_OK, "Customer Type Show Successfully!!", $getCustByCustType);
-        }
+        $data['label'] = 'cust_type';
+        $data['data'] = $getCustByCustType;
+        $collection = new Collection([$data]);
+        return $collection;
+
+       
     }
 
     public function getCusPinCode()
     {
         $validator = Validator::make($this->request->all(), [
             'cust_code' => 'required|exists:gms_customer,cust_code',
-
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
@@ -1693,11 +1811,9 @@ class CustomerController extends Controller
         $total_allotted = 0;
         foreach ($result as $row) {
             # code...
-
             $qauantity = $qauantity + $row['qauantity'];
             $total_allotted = $total_allotted + $row['total_allotted'];
         }
-
         $data['left_qty'] = $qauantity - $total_allotted;
         $collection = new Collection([$result, $data]);
         return $collection;
@@ -1735,7 +1851,6 @@ class CustomerController extends Controller
 
         $data1 = DB::table('gms_cnno_stock')->select('stock_cnno')->where('stock_iss_cust_id', $this->request->id)->orderBy('stock_cnno', 'desc')->first();
         $add = $data1->stock_cnno;
-
         $data2 = DB::table('gms_cnno_stock')->select('stock_cnno')->where('stock_iss_cust_id', $this->request->id)->orderBy('stock_cnno', 'asc')->first();
         $min = $data2->stock_cnno;
 
@@ -1823,6 +1938,7 @@ class CustomerController extends Controller
 
     public function updateCityCustomer(Request $request)
     {
+
         $validator = Validator::make($this->request->all(), [
             'id' => 'required|exists:gms_customer,id',
         ]);
@@ -1830,8 +1946,11 @@ class CustomerController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
         $input = $this->request->all();
-        $updatecust = GmsCustomer::where('id', $input['id'])->where('is_deleted', 0)->first();
+        $updatecust = GmsCustomer::where('id', $input['id'])->where('gms_customer.user_id',$adminSession->admin_id)->where('is_deleted', 0)->first();
         if ($updatecust) {
             $editcust = GmsCustomer::find($updatecust->id);
             $editcust->update($input);
@@ -1839,6 +1958,10 @@ class CustomerController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
+    }
 
+    public function viewCustomerRO()
+    {
+        return $this->gms_customerRO();
     }
 }

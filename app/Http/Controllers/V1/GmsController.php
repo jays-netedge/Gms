@@ -33,7 +33,7 @@ use App\Models\GmsPmfDtls;
 use App\Models\GmsColoaderDtls;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-
+use App\Models\GmsApi;
 
 class GmsController extends Controller
 {
@@ -367,15 +367,36 @@ class GmsController extends Controller
         return $this->view_payment();
     }
 
+    /* public function viewAllPayment(Request $request)
+     {
+         $gmsPayment = GmsPayment::where('is_deleted', 0)->select('id', 'cust_code', 'paid_through', 'deposit_DD', 'amount', 'posted_date');
+         $gmsPayment->orderBy('id', 'desc');
+         return $gmsPayment->paginate($request->per_page);
+     }*/
     public function viewAllPayment(Request $request)
     {
-        $gmsPayment = GmsPayment::where('is_deleted', 0)->select('id', 'cust_code', 'paid_through', 'deposit_DD', 'amount', 'posted_date');
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
+        $gmsPayment = GmsPayment::where('is_deleted', 0)->select('id',
+            'cust_code',
+            'paid_through',
+            'deposit_DD', 
+            'amount', 
+        DB::raw('DATE_FORMAT(posted_date, "%Y-%m-%d") as posted_date'),
+
+        )->where('created_office',$admin->office_code);
         $gmsPayment->orderBy('id', 'desc');
         return $gmsPayment->paginate($request->per_page);
     }
 
     public function editPayment()
     {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
         $validator = Validator::make($this->request->all(), [
             'payment_id' => 'required|exists:gms_payment,id',
 
@@ -384,7 +405,7 @@ class GmsController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $getpayment = GmsPayment::where('id', $input['payment_id'])->where('is_deleted', 0)->first();
+        $getpayment = GmsPayment::where('id', $input['payment_id'])->where('created_office',$admin->office_code)->where('is_deleted', 0)->first();
         if ($getpayment) {
             $editpayment = GmsPayment::find($getpayment->id);
             $editpayment->update($input);
@@ -396,6 +417,10 @@ class GmsController extends Controller
 
     public function deletePayment()
     {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
         $validator = Validator::make($this->request->all(), [
             'payment_id' => 'required|exists:gms_payment,id',
         ]);
@@ -403,7 +428,7 @@ class GmsController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $getpayment = GmsPayment::where('id', $input['payment_id'])->first();;
+        $getpayment = GmsPayment::where('id', $input['payment_id'])->where('created_office',$admin->office_code)->first();;
         if ($getpayment != null) {
             $getpayment->is_deleted = 1;
             $getpayment->save();
@@ -666,19 +691,47 @@ class GmsController extends Controller
      */
     public function addDiscount()
     {
+        $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
         $validator = Validator::make($this->request->all(), [
-            'billing_rate_code' => 'required',
-            'billing_type' => 'required',
-            'delivery_type' => 'required',
             'discount_type' => 'required',
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $addDiscount = new GmsRateBillingDiscount($input);
-        $addDiscount->save();
-        return $this->successResponse(self::CODE_OK, "Discount Added Successfully!!", $addDiscount);
+
+        if (isset($this->request->invoice_value_range)) {
+            $cnt = count($this->request->invoice_value_range);
+            for ($x = 0; $x < $cnt; $x++) {
+                $input['discount_type'] = $this->request->discount_type;
+                $input['invoice_value_range'] = $this->request->invoice_value_range[$x];
+                $input['invoice_value_percentage'] = $this->request->invoice_value_percentage[$x];
+                $input['billing_rate_code'] = $admin->office_code;
+                $input['created_by'] = $admin->office_code;
+                $input['created_date'] = Carbon::now()->toDateTimeString();
+                $addDiscount = new GmsRateBillingDiscount($input);
+                $addDiscount->save();
+            }
+            return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addDiscount);
+        } else {
+            $input['discount_type'] = $this->request->discount_type;
+            $input['billing_rate_code'] = $admin->office_code;
+            $input['created_by'] = $admin->office_code;
+            $input['created_date'] = Carbon::now()->toDateTimeString();
+            $addDiscount = new GmsRateBillingDiscount($input);
+            $addDiscount->save();
+            return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addDiscount);
+        }
+    }
+
+    public function viewDiscount(Request $request)
+    {
+        $adminSession = session()->get('session_token');
+        $GmsRateBillingDiscount = GmsRateBillingDiscount::select('id', 'billing_rate_code AS discount_code', 'billing_type AS billing_discout', 'rate_per_cnno', 'rate_per_weight', 'invoice_value_range AS service_range_value', 'invoice_value_percentage AS percentage', 'created_date');
+        return $GmsRateBillingDiscount->paginate($request->per_page);
     }
 
     public function viewAmdro()
@@ -719,7 +772,6 @@ class GmsController extends Controller
         $cityList = $city->get();
         return $this->successResponse(self::CODE_OK, "View All City Listed!!", $cityList);
     }
-
 
     public function addmasterBbsro(Request $request)
     {
@@ -1119,6 +1171,11 @@ class GmsController extends Controller
         //     return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         // }
         $input = $this->request->all();
+
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->first();
+       
+        $input['user_id'] = $admin->id;
         $gmsAlert = new GmsAlert($input);
         $gmsAlert->save();
 
@@ -1184,7 +1241,7 @@ class GmsController extends Controller
         }
         $input = $this->request->all();
         $input['user_id'] = $admin->id;
-        $getEmailAlert = GmsAlert::where('id', $input['alert_id'])->where('is_deleted', 0)->first();
+        $getEmailAlert = GmsAlert::where('id', $input['alert_id'])->where('user_id',$sessionObject->admin_id)->where('is_deleted', 0)->first();
         if ($getEmailAlert) {
             $editEmail = GmsAlert::find($getEmailAlert->id);
             $editEmail->update($input);
@@ -1192,6 +1249,14 @@ class GmsController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "ID Not Found");
         }
+    }
+
+    public function viewAllAlert(Request $request)
+    {
+        $sessionObject = session()->get('session_token');
+
+        $gmsAlert = GmsAlert::select('id', 'name', 'email1', 'email2', 'mobile1', 'mobile2', 'email_status', 'sms_status', 'alert_type', 'entry_date')->where('is_deleted', 0)->where('user_id',$sessionObject->admin_id)->orderBy('id', 'DESC');
+            return $gmsAlert->paginate($request->per_page);
     }
 
 
@@ -1218,6 +1283,7 @@ class GmsController extends Controller
             DB::raw('concat(count(pmf_no),"/",sum(pmf_pcs)- sum(pmf_received_pcs)) As cnno_status'),
             DB::raw('SUM(gms_pmf_dtls.pmf_amt) As Amt'),
         );
+        $advanceSearchIpmf->where('gms_pmf_dtls.pmf_type', 'IPMF');
         $advanceSearchIpmf->groupBy('gms_pmf_dtls.pmf_no');
 
         if ($request->has('from_date') && $request->has('to_date')) {
@@ -1240,7 +1306,6 @@ class GmsController extends Controller
         // $query2[] = $advanceSearchIpmf->get()->toArray();
         // return $this->successResponse(self::CODE_OK, $query2);
     }
-
 
     public function advanceSearchOpmf(Request $request)
     {
@@ -1265,13 +1330,12 @@ class GmsController extends Controller
             DB::raw('SUM(gms_pmf_dtls.pmf_amt) As Amt'),
             DB::raw('concat("[",gms_pmf_dtls.pmf_origin,",",gms_pmf_dtls.pmf_dest,"]")As ManifestType'),
             DB::raw('DATE_FORMAT(gms_pmf_dtls.updated_at,"%d %b, %Y") as last_update_date'),
-
         );
+        $query->where('gms_pmf_dtls.pmf_type', 'OPMF');
         $query->groupBy('gms_pmf_dtls.pmf_no');
         if ($request->has('from_date') && $request->has('to_date')) {
             $query->whereBetween('pmf_date', [$from_date, $to_date]);
         }
-
         if ($request->has('pmf_ro')) {
             $query->Where('pmf_ro', $pmf_ro);
         }
@@ -1287,7 +1351,6 @@ class GmsController extends Controller
         $query->where('gms_pmf_dtls.is_deleted', 0);
         //$query2[] = $query->get()->toArray();
         return $query->paginate($request->per_page);
-
     }
 
     public function searchDpmf(Request $request)
@@ -1299,36 +1362,66 @@ class GmsController extends Controller
         $fran_cust_name = $this->request->fran_cust_name;
         $dmf_cnno_type = $this->request->dmf_cnno_type;
         $dmf_mfno = $this->request->dmf_mfno;
-        $dataSearch = GmsDmfDtls::select(
-            DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
-            'dmf_mfno as mnf_code',
-            'dmf_cnno_type as dmf_type',
-            DB::raw('COUNT(dmf_cnno) as total_cnno'),
-            DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
-            DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
-            DB::raw('SUM(dmf_wt) as total_weight'),
-            DB::raw('SUM(dmf_pcs) as total_pcs'),
 
-        );
-        if ($request->has('from_date') && $request->has('to_date')) {
-            $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+        if ($request->type == 'regular') {
+            $dataSearch = GmsDmfDtls::select(
+                DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
+                'dmf_mfno as mnf_code',
+                'dmf_cnno_type as dmf_type',
+                DB::raw('COUNT(dmf_cnno) as total_cnno'),
+                DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
+                DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
+                DB::raw('SUM(dmf_wt) as total_weight'),
+                DB::raw('SUM(dmf_pcs) as total_pcs'),
+            );
+            if ($request->has('from_date') && $request->has('to_date')) {
+                $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+            }
+            if ($request->has('dmf_type')) {
+                $dataSearch->Where('dmf_type', $dmf_type);
+            }
+            if ($request->has('dmf_emp')) {
+                $dataSearch->Where('dmf_emp', $dmf_emp);
+            }
+
+            if ($request->has('dmf_mfno')) {
+                $dataSearch->where('dmf_mfno', $dmf_mfno);
+            }
+            $dataSearch->where('dmf_cnno_type', 'R');
+            $dataSearch->where('is_deleted', 0);
+            $dataSearch->groupBy('dmf_mfno');
+            //  $query2[] = $dataSearch->get()->toArray();
+            return $dataSearch->paginate($request->per_page);
+        } elseif ($request->type == 'direct') {
+            $dataSearch = GmsDmfDtls::select(
+                DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
+                'dmf_mfno as mnf_code',
+                'dmf_cnno_type as dmf_type',
+                DB::raw('COUNT(dmf_cnno) as total_cnno'),
+                DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
+                DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
+                DB::raw('SUM(dmf_wt) as total_weight'),
+                DB::raw('SUM(dmf_pcs) as total_pcs'),
+            );
+            if ($request->has('from_date') && $request->has('to_date')) {
+                $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+            }
+            if ($request->has('dmf_type')) {
+                $dataSearch->Where('dmf_type', $dmf_type);
+            }
+            if ($request->has('dmf_emp')) {
+                $dataSearch->Where('dmf_emp', $dmf_emp);
+            }
+
+            if ($request->has('dmf_mfno')) {
+                $dataSearch->where('dmf_mfno', $dmf_mfno);
+            }
+            $dataSearch->where('dmf_cnno_type', 'D');
+            $dataSearch->where('is_deleted', 0);
+            $dataSearch->groupBy('dmf_mfno');
+            //  $query2[] = $dataSearch->get()->toArray();
+            return $dataSearch->paginate($request->per_page);
         }
-        if ($request->has('dmf_type')) {
-            $dataSearch->Where('dmf_type', $dmf_type);
-        }
-        if ($request->has('dmf_emp')) {
-            $dataSearch->Where('dmf_emp', $dmf_emp);
-        }
-        if ($request->has('dmf_cnno_type')) {
-            $dataSearch->Where('dmf_cnno_type', $dmf_cnno_type);
-        }
-        if ($request->has('dmf_mfno')) {
-            $dataSearch->where('dmf_mfno', $dmf_mfno);
-        }
-        $dataSearch->where('is_deleted', 0);
-        $dataSearch->groupBy('dmf_mfno');
-        //  $query2[] = $dataSearch->get()->toArray();
-        return $dataSearch->paginate($request->per_page);
     }
 
     public function advancedSearchDpmfUpdate(Request $request)
@@ -1339,41 +1432,70 @@ class GmsController extends Controller
         $dmf_emp = $this->request->dmf_emp;
         $dmf_cnno_type = $this->request->dmf_cnno_type;
         $dmf_mfno = $this->request->dmf_mfno;
-        $dataSearch = GmsDmfDtls::select(
-            DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
-            'dmf_mfno as mnf_code',
-            'dmf_cnno_type as dmf_type',
-            DB::raw('COUNT(dmf_cnno) as total_cnno'),
-            DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
-            DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
-            DB::raw('SUM(dmf_wt) as weight'),
-            DB::raw('SUM(dmf_pcs) as pcs'),
-        );
+        $validator = Validator::make($this->request->all(), [
+            'dmf_cnno_type' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        if (isset($dmf_cnno_type) && $dmf_cnno_type == 'R') {
+            $dataSearch = GmsDmfDtls::select(
+                DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
+                'dmf_mfno as mnf_code',
+                'dmf_cnno_type as dmf_type',
+                DB::raw('COUNT(dmf_cnno) as total_cnno'),
+                DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
+                DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
+                DB::raw('SUM(dmf_wt) as weight'),
+                DB::raw('SUM(dmf_pcs) as pcs'),
+            );
+            if ($request->has('from_date') && $request->has('to_date')) {
+                $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+            }
+            if ($request->has('dmf_type')) {
+                $dataSearch->Where('dmf_type', $dmf_type);
+            }
+            if ($request->has('dmf_emp')) {
+                $dataSearch->Where('dmf_emp', $dmf_emp);
+            }
+            if ($request->has('dmf_mfno')) {
+                $dataSearch->where('dmf_mfno', $dmf_mfno);
+            }
+            $dataSearch->where('is_deleted', 0);
+            $dataSearch->where('dmf_cnno_type', $dmf_cnno_type);
+            $dataSearch->groupBy('dmf_mfno');
+            //$query2[] = $dataSearch->get()->toArray();
+            return $dataSearch->paginate($request->per_page);
+        } elseif (isset($dmf_cnno_type) && $dmf_cnno_type == 'D') {
+            $dataSearch = GmsDmfDtls::select(
+                DB::raw('CONCAT(dmf_type,"-",dmf_emp) as customer_type'),
+                'dmf_mfno as mnf_code',
+                'dmf_cnno_type as dmf_type',
+                DB::raw('COUNT(dmf_cnno) as total_cnno'),
+                DB::raw('DATE_FORMAT(dmf_mfdate, "%d %b, %Y") as date'),
+                DB::raw('DATE_FORMAT(dmf_mftime, "%l:%i %p") as time'),
+                DB::raw('SUM(dmf_wt) as weight'),
+                DB::raw('SUM(dmf_pcs) as pcs'),
+            );
 
-        // join('gms_emp', 'gms_emp.emp_code', '=', 'gms_dmf_dtls.dmf_emp')
-        // ->join('gms_customer_franchisee', 'gms_customer_franchisee.cust_code', '=', 'gms_dmf_dtls.dmf_fr_code')
-
-        if ($request->has('from_date') && $request->has('to_date')) {
-            $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+            if ($request->has('from_date') && $request->has('to_date')) {
+                $dataSearch->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+            }
+            if ($request->has('dmf_type')) {
+                $dataSearch->Where('dmf_type', $dmf_type);
+            }
+            if ($request->has('dmf_emp')) {
+                $dataSearch->Where('dmf_emp', $dmf_emp);
+            }
+            if ($request->has('dmf_mfno')) {
+                $dataSearch->where('dmf_mfno', $dmf_mfno);
+            }
+            $dataSearch->where('is_deleted', 0);
+            $dataSearch->where('dmf_cnno_type', $dmf_cnno_type);
+            $dataSearch->groupBy('dmf_mfno');
+            //$query2[] = $dataSearch->get()->toArray();
+            return $dataSearch->paginate($request->per_page);
         }
-        if ($request->has('dmf_type')) {
-            $dataSearch->Where('dmf_type', $dmf_type);
-        }
-        if ($request->has('dmf_emp')) {
-            $dataSearch->Where('dmf_emp', $dmf_emp);
-        }
-        if ($request->has('dmf_cnno_type')) {
-            $dataSearch->Where('dmf_cnno_type', $dmf_cnno_type);
-        }
-        if ($request->has('dmf_mfno')) {
-            $dataSearch->where('dmf_mfno', $dmf_mfno);
-        }
-        $dataSearch->where('is_deleted', 0);
-        $dataSearch->where('dmf_cn_status', "=", "D");
-        $dataSearch->groupBy('dmf_mfno');
-        //$query2[] = $dataSearch->get()->toArray();
-        return $dataSearch->paginate($request->per_page);
-
     }
 
     public function coloaderCustomers(Request $request)
@@ -1431,7 +1553,6 @@ class GmsController extends Controller
         $input = $this->request->all();
         for ($i = 0; $i < count($input['pmf_no']); $i++) {
             $gmsColoaderDtls = new GmsColoaderDtls([
-
                 'branch_code' => $input['branch_code'],
                 'branch_ro' => $input['branch_ro'],
                 'coloader_code' => $input['coloader_code'],
@@ -1451,7 +1572,6 @@ class GmsController extends Controller
                 'entry_date' => Carbon::now()->toDateTimeString(),
                 'userid' => $sessionObject->admin_id
             ]);
-
             $gmsColoaderDtls->save();
         }
         return $this->successResponse(self::CODE_OK, "Added Successfully!!", $gmsColoaderDtls);
@@ -1474,6 +1594,8 @@ class GmsController extends Controller
             'manifest_no',
             'total_cnno',
         );
+        //  $viewColoadersDetails->where('is_deleted',0);
+
         if ($request->isMethod('get')) {
             return $viewColoadersDetails->paginate($request->per_page);
         } else {
@@ -1543,7 +1665,13 @@ class GmsController extends Controller
             return GmsDmfDtls::where('dmf_mfdate', $request->dmf_mfdate)
                 ->orWhere('dmf_type', $request->dmf_type)
                 ->orWhere('dmf_emp', $request->dmf_emp)
-                ->select('dmf_type', 'dmf_fr_code', DB::raw('count(dmf_mfno)as totalcnno'), DB::raw("(SELECT COUNT(dmf_cnno_current_status) WHERE dmf_cnno_current_status ='WTD') as Delivered"), DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as NotDelivered"), DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"), DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"))
+                ->select('dmf_type',
+                         'dmf_fr_code', 
+                        DB::raw('count(dmf_mfno)as totalcnno'), 
+                        DB::raw("(SELECT COUNT(dmf_cnno_current_status) WHERE dmf_cnno_current_status ='WTD') as Delivered"), 
+                        DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as NotDelivered"), 
+                        DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"), 
+                        DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"))
                 ->groupBy('dmf_type', 'dmf_fr_code', 'dmf_cnno_current_status', 'dmf_cn_status')
                 ->first();
         } else {
@@ -1554,14 +1682,55 @@ class GmsController extends Controller
     public function tracking()
     {
         $input = $this->request->all();
-        $booking_details[] = GmsBookingDtls::join('gms_customer',
+        //BookingDetailsQuery
+        $booking_details[] = GmsBookingDtls::leftjoin('gms_customer',
             'gms_booking_dtls.book_cust_code', '=', 'gms_customer.cust_code')->
-        join('gms_office', 'gms_booking_dtls.book_br_code', '=', 'gms_office.office_code')->
-        join('gms_emp', 'gms_booking_dtls.book_emp_code', '=', 'gms_emp.emp_code')->
-        join('gms_city', 'gms_booking_dtls.book_dest', '=', 'gms_city.city_code')->select('gms_booking_dtls.book_cnno as conginment_no', 'gms_booking_dtls.book_mfdate as booking_date', 'gms_booking_dtls.book_refno as refNo', 'gms_booking_dtls.book_weight as weight', 'gms_booking_dtls.book_vol_weight as vol_weight', DB::raw('concat(gms_booking_dtls.book_cust_code,"/",gms_customer.cust_la_ent) As customer'), 'gms_booking_dtls.book_mfno', DB::raw('concat(gms_booking_dtls.book_br_code,"/",gms_office.office_name) As booking_branch'), DB::raw('concat(gms_booking_dtls.book_emp_code,"/",gms_emp.emp_name) As booking_branch'), 'gms_booking_dtls.book_invno as invoice_dtls', 'gms_city.city_name', 'gms_booking_dtls.book_pin as pincode', 'gms_booking_dtls.book_mode as mode', 'gms_booking_dtls.book_cod as cod_value', 'gms_booking_dtls.book_topay as topay_value', 'gms_booking_dtls.book_doc as doc_type', 'gms_booking_dtls.book_pcs as pcs', 'gms_booking_dtls.book_cons_dtl as consignor_dtls', 'gms_booking_dtls.book_cn_name as consignor_name', 'gms_booking_dtls.book_cn_name as consignor_name', 'gms_booking_dtls.book_cn_mobile as consignor_number', 'gms_booking_dtls.book_cons_mobile as consignee_name', 'gms_booking_dtls.book_remarks as remark')->where('gms_booking_dtls.book_cnno', $input['cnno_no'])->first();
-
-        $gmsPmfDtls[] = GmsPmfDtls::join('gms_office', 'gms_pmf_dtls.pmf_origin', '=', 'gms_office.office_code')->join('gms_emp', 'gms_pmf_dtls.pmf_emp_code', '=', 'gms_emp.emp_code')->select('gms_pmf_dtls.pmf_no as opmf', DB::raw('concat(gms_pmf_dtls.pmf_origin,"/",gms_office.office_name) As origin_branch'), 'gms_pmf_dtls.pmf_date as opmf_date', 'gms_pmf_dtls.pmf_time as opmf_time', 'gms_pmf_dtls.pmf_pcs as pcs', DB::raw('concat(gms_pmf_dtls.pmf_wt,"/",gms_pmf_dtls.pmf_vol_wt) As wt_vol_wt'), DB::raw('concat(gms_pmf_dtls.pmf_dest,"/",gms_office.office_name) As dest_branch'), 'gms_pmf_dtls.pmf_received_date as in_date_time', DB::raw('concat(gms_pmf_dtls.pmf_received_wt,"/",gms_pmf_dtls.pmf_vol_received_wt) As receive_vol_wt'), DB::raw('concat(gms_pmf_dtls.pmf_origin,"/",gms_pmf_dtls.pmf_emp_code) As dest_branch'))->where('gms_pmf_dtls.pmf_cnno', $input['cnno_no'])->first();
-        $gmsDmfDtls[] = GmsDmfDtls::join('gms_customer_franchisee', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer_franchisee.fran_cust_code')->select('gms_dmf_dtls.dmf_mfdate as dmf_date', 'gms_dmf_dtls.dmf_mfno as drs_no', 'gms_dmf_dtls.dmf_cnno_current_status as status', 'gms_dmf_dtls.modify_date as updated_by', 'gms_dmf_dtls.dmf_atmpt_date as attemp_date', 'gms_dmf_dtls.dmf_ndel_reason as reasone', 'gms_dmf_dtls.dmf_remarks as remark', 'gms_dmf_dtls.dmf_delv_remarks as info')->where('gms_dmf_dtls.dmf_cnno', $input['cnno_no'])->first();
+                leftjoin('gms_office', 'gms_booking_dtls.book_br_code', '=', 'gms_office.office_code')->
+                leftjoin('gms_emp', 'gms_booking_dtls.book_emp_code', '=', 'gms_emp.emp_code')->
+                leftjoin('gms_city', 'gms_booking_dtls.book_dest', '=', 'gms_city.city_code')->select(
+                 'gms_booking_dtls.book_cnno as conginment_no',
+                 'gms_booking_dtls.book_mfdate as booking_date', 
+                 'gms_booking_dtls.book_refno as refNo', 
+                 'gms_booking_dtls.book_weight as weight', 
+                 'gms_booking_dtls.book_vol_weight as vol_weight', 
+                 DB::raw('concat(gms_booking_dtls.book_cust_code,"/",gms_customer.cust_la_ent) As customer'), 
+                 'gms_booking_dtls.book_mfno', 
+                 DB::raw('concat(gms_booking_dtls.book_br_code,"/",gms_office.office_name) As booking_branch'), 
+                 DB::raw('concat(gms_booking_dtls.book_emp_code,"/",gms_emp.emp_name) As booking_branch'), 
+                 'gms_booking_dtls.book_invno as invoice_dtls', 'gms_city.city_name', 
+                 'gms_booking_dtls.book_pin as pincode', 
+                 'gms_booking_dtls.book_mode as mode', 
+                 'gms_booking_dtls.book_cod as cod_value', 
+                 'gms_booking_dtls.book_topay as topay_value', 
+                 'gms_booking_dtls.book_doc as doc_type', 
+                 'gms_booking_dtls.book_pcs as pcs', 
+                 'gms_booking_dtls.book_cons_dtl as consignor_dtls', 
+                 'gms_booking_dtls.book_cn_name as consignor_name', 
+                 'gms_booking_dtls.book_cn_name as consignor_name', 
+                 'gms_booking_dtls.book_cn_mobile as consignor_number', 
+                 'gms_booking_dtls.book_cons_mobile as consignee_name', 
+                 'gms_booking_dtls.book_remarks as remark')->where('gms_booking_dtls.book_cnno', $input['cnno_no'])->first();
+        //PmfTrackingQuery
+        $gmsPmfDtls[] = GmsPmfDtls::leftjoin('gms_office', 'gms_pmf_dtls.pmf_origin', '=', 'gms_office.office_code')->leftjoin('gms_emp', 'gms_pmf_dtls.pmf_emp_code', '=', 'gms_emp.emp_code')->select(
+                 'gms_pmf_dtls.pmf_no as opmf', 
+                 DB::raw('concat(gms_pmf_dtls.pmf_origin,"/",gms_office.office_name) As origin_branch'), 
+                 'gms_pmf_dtls.pmf_date as opmf_date', 'gms_pmf_dtls.pmf_time as opmf_time', 
+                 'gms_pmf_dtls.pmf_pcs as pcs', 
+                 DB::raw('concat(gms_pmf_dtls.pmf_wt,"/",gms_pmf_dtls.pmf_vol_wt) As wt_vol_wt'), 
+                 DB::raw('concat(gms_pmf_dtls.pmf_dest,"/",gms_office.office_name) As dest_branch'), 
+                 'gms_pmf_dtls.pmf_received_date as in_date_time',
+                 DB::raw('concat(gms_pmf_dtls.pmf_received_wt,"/",gms_pmf_dtls.pmf_vol_received_wt) As receive_vol_wt'), 
+                 DB::raw('concat(gms_pmf_dtls.pmf_origin,"/",gms_pmf_dtls.pmf_emp_code) As dest_branch'))->where('gms_pmf_dtls.pmf_cnno', $input['cnno_no'])->first();
+        //DmfTrackingQuery
+        $gmsDmfDtls[] = GmsDmfDtls::leftjoin('gms_customer_franchisee', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer_franchisee.fran_cust_code')->select(
+                 'gms_dmf_dtls.dmf_mfdate as dmf_date', 
+                 'gms_dmf_dtls.dmf_mfno as drs_no', 
+                 'gms_dmf_dtls.dmf_cnno_current_status as status', 
+                 'gms_dmf_dtls.modify_date as updated_by', 
+                 'gms_dmf_dtls.dmf_atmpt_date as attemp_date', 
+                 'gms_dmf_dtls.dmf_ndel_reason as reasone', 
+                 'gms_dmf_dtls.dmf_remarks as remark', 
+                 'gms_dmf_dtls.dmf_delv_remarks as info')->where('gms_dmf_dtls.dmf_cnno', $input['cnno_no'])->first();
 
         return $this->successResponse(self::CODE_OK, ["booking_details" => $booking_details,
             "gmsPmfDtls" => $gmsPmfDtls,
@@ -1572,45 +1741,57 @@ class GmsController extends Controller
     public function viewAllComplaints(Request $request)
     {
         $input = $this->request->all();
-        $query = GmsComplaint::
-        leftjoin('gms_booking_dtls AS book', 'book.book_cnno', '=', 'gms_complaint.log_cnno')
-            ->leftjoin('admin AS create', 'create.id', '=', 'gms_complaint.userid')
-            ->leftjoin('admin AS closed', 'closed.id', '=', 'gms_complaint.closed_by')
-            ->leftjoin('gms_city AS origin', 'origin.city_code', '=', 'book.book_org')
-            ->leftjoin('gms_city AS dest', 'dest.city_code', '=', 'book.book_dest')
-            ->select(
-                'gms_complaint.id',
-                DB::raw('CONCAT("GMSCQ","-",gms_complaint.id) AS complaint_no'),
-                'book.book_cnno',
-                'origin.city_name AS origin',
-                'dest.city_name AS destination',
+        $getViewComplaintsDetails = GmsComplaint::leftjoin('admin', 'gms_complaint.userid', '=', 'admin.id')
+            ->leftjoin('gms_complaint_reply', 'gms_complaint.id', '=', 'gms_complaint_reply.log_no')/*->leftjoin('gms_office','gms_complaint.bo_office','=','gms_office.office_code')*/ ->select('gms_complaint.id',
+
+                DB::raw('CONCAT("GMSCQ",gms_complaint.id) AS complaint_no'),
+                'gms_complaint.log_cnno AS cnno',
+                //   DB::raw("(SELECT gms_city.city_name from gms_city WHERE gms_city.city_code = admin.city) AS origin"),
                 'gms_complaint.consignee_name',
                 'gms_complaint.consignee_mobile_no',
                 'gms_complaint.consignor_name',
                 'gms_complaint.consignor_mobile_no',
                 'gms_complaint.description',
-                'create.username AS crated_by',
-                DB::raw('DATE_FORMAT(gms_complaint.created_at, "%d %b, %Y") as created_date'),
-                'closed.username AS closed_by',
-                DB::raw('DATE_FORMAT(gms_complaint.closed_date, "%d %b, %Y") as closed_date'),
+                'admin.username AS created_by',
+                'gms_complaint.entry_date AS created_date',
+                'gms_complaint.closed_by',
+                'gms_complaint.closed_date',
                 'gms_complaint.status',
-            );
-        $query->where('gms_complaint.is_deleted', 0);
-        if ($request->has('status')) {
-            $query->where('gms_complaint.status', $request->status);
+                DB::raw("count(gms_complaint_reply.log_no) as reply")
+            )->groupBy('gms_complaint.id');
+        $getViewComplaintsDetails->where('gms_complaint.is_deleted', 0);
+
+        if ($request->has('q')) {
+            $q = $request->q;
+            $getViewComplaintsDetails->where('gms_complaint.log_cnno', 'LIKE', '%' . $q . '%')
+                ->orWhere('gms_complaint.consignee_mobile_no', 'LIKE', '%' . $q . '%')
+                ->orWhere('gms_complaint.consignor_mobile_no', 'LIKE', '%' . $q . '%')
+                ->orWhere('gms_complaint.status', 'LIKE', '%' . $q . '%');
+            return $getViewComplaintsDetails->paginate($request->per_page);
+        } elseif ($request->isMethod('get')) {
+            return $getViewComplaintsDetails->paginate($request->per_page);
+        } elseif ($request->has('complain_no')) {
+            $getComplaintReplay = GmsComplaintReply::leftjoin('admin', 'gms_complaint_reply.userid', '=', 'admin.id')->select('gms_complaint_reply.description', 'admin.username as replied_by', 'gms_complaint_reply.entry_date as replied_date');
+            $getComplaintReplay->where('gms_complaint_reply.log_no', $input['complain_no']);
+            $data = $getComplaintReplay->get();
+            return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Data Not Found");
         }
-        return $query->paginate($request->per_page);
     }
 
     public function getAgent(Request $request)
     {
         $adminSession = session()->get('session_token');
-        $admin = Admin::where('id', $adminSession->admin_id)->first();
-        $office = GmsOffice::where('id', $admin->office_id)->first();
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted',0)->first();
+        $office = GmsOffice::where('id', $admin->office_id)->where('is_deleted',0)->first();
+
+        $ro_office = GmsOffice::where('id',$office->office_under)->where('is_deleted',0)->first();
+
         $type = $this->request->type;
         if ($type == "BD") {
             $emp = GmsEmp::select('emp_name as cust_name', 'emp_code as cust_code', 'emp_code'
-            )->where('emp_city', $office->office_city)->where('emp_rep_offtype', $office->office_type)->where('status', 'A')->where('is_deleted', 0);
+            )->where('emp_city', $ro_office->office_city)->where('emp_rep_offtype', $ro_office->office_type)->where('status', 'A')->where('is_deleted', 0);
             return $emp->paginate($request->per_page);
         } elseif ($type == "DA") {
             $cust = GmsCustomer::select(DB::raw('concat(cust_name,"(",cust_code,")")As agent'), 'cust_code'
@@ -1624,6 +1805,11 @@ class GmsController extends Controller
             $cust = GmsCustomer::select(DB::raw('concat(cust_name,"(",cust_code,")")As agent'), 'cust_code'
             )->where('cust_city', $office->office_city)->where('cust_type', "CF")->where('is_deleted', 0);
             return $cust->paginate($request->per_page);
+        }elseif ($type == "OF") {
+            $cust = GmsCustomer::select(DB::raw('concat(cust_name,"(",cust_code,")")As agent'), 'cust_code'
+            )->where('cust_city', $office->office_city)->where('cust_type', "OF")->where('is_deleted', 0);
+            return $cust->paginate($request->per_page);
+
         } else {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Data Not Found');
         }
@@ -1631,9 +1817,9 @@ class GmsController extends Controller
 
     public function asignPincodeCityList(Request $request)
     {
-        $getAllCityCodeToBranch = GmsCity::select('gms_city.city_code as value', 
+        $getAllCityCodeToBranch = GmsCity::select('gms_city.city_code as value',
             DB::raw('concat(gms_city.city_name,"(",gms_city.city_code,")","(",gms_city.state_code,")") As city_name')
-        )->where('is_deleted',0)->get();
+        )->where('is_deleted', 0)->get();
         $data['label'] = 'value';
         $data['options'] = $getAllCityCodeToBranch;
         $collection = new Collection([$data]);
@@ -1667,10 +1853,10 @@ class GmsController extends Controller
         $input = $this->request->all();
         $getAllPinCodeToBranch = GmsPincode::where('pincode_value', $input['pincode'])->first();
         # code...
-         if (isset($input['status'])) {
-           $getAllPinCodeToBranch->pin_status = $input['status'];
-           return $this->successResponse(self::CODE_OK, "PinCode Assign Successfully!!");
-        }else{
+        if (isset($input['status'])) {
+            $getAllPinCodeToBranch->pin_status = $input['status'];
+            return $this->successResponse(self::CODE_OK, "PinCode Assign Successfully!!");
+        } else {
             return "plz check pincode";
         }
     }
@@ -1687,11 +1873,10 @@ class GmsController extends Controller
 
     public function zoneList()
     {
-        $zone = GmsOffice::where('office_type','ZO')->select(
-
-        DB::raw('CONCAT(gms_office.id) As value'),
+        $zone = GmsOffice::where('office_type', 'ZO')->select(
+            DB::raw('CONCAT(gms_office.id) As value'),
             //DB::raw('CONCAT(gms_office.office_name,"(",gms_office.office_code,")" As label'),
-             DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
+            DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
         )->where('gms_office.is_deleted', 0)->orderBy('gms_office.id', 'asc')->get();
         $data['label'] = 'zone';
         $data['options'] = $zone;
@@ -1702,16 +1887,169 @@ class GmsController extends Controller
     public function getZoneBoList()
     {
         $input = $this->request->all();
-        $zone = GmsOffice::where('office_type','RO')->select(
-
-        DB::raw('CONCAT(gms_office.office_name) As value'),
+        $zone = GmsOffice::where('office_type', 'RO')->select(
+            DB::raw('CONCAT(gms_office.office_name) As value'),
             //DB::raw('CONCAT(gms_office.office_name,"(",gms_office.office_code,")" As label'),
-             DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
-        )->where('office_under',$input['office'])->where('gms_office.is_deleted', 0)->orderBy('gms_office.id', 'asc')->get();
+            DB::raw('concat(gms_office.office_name,"-",gms_office.office_code) As label'),
+        )->where('office_under', $input['office'])->where('gms_office.is_deleted', 0)->orderBy('gms_office.id', 'asc')->get();
         $data['label'] = 'zone';
         $data['options'] = $zone;
         $collection = new Collection([$data]);
         return $collection;
+    }
+
+    public function postapilink()
+    {
+        $customer_code = $this->request->customer_code;
+        $book_cust_type = $this->request->book_cust_type;
+        $api_url = "http://gmsworldwide.com/api/get_consignment.php?format=xml&tocken=Ramesh&cnno=consignment";
+
+        GmsApi::where('customer_code', $customer_code)
+            ->update(['api_url' => $api_url]);
+        return $this->successResponse(self::CODE_OK, "Added Successfully!!");
+    }
+
+    public function selectBranch()
+    {
+        $getBoOffice = GmsOffice::select(
+            DB::raw('CONCAT(office_code,"_",office_city) AS value'),
+            DB::raw('CONCAT(office_code,"-",office_name,"(",office_city,")") AS label'))->where('office_type', "BO")->where('is_deleted', 0)->get();
+        $data['label'] = 'branches';
+        $data['options'] = $getBoOffice;
+        $collection = new Collection([$data]);
+        if (!$collection) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $collection);
+        }
+    }
+
+    public function selectCity()
+    {
+        $getcity = GmsCity::select(
+            'city_code AS value',
+            DB::raw('CONCAT(city_name,"(",city_code,")","(",state_code,")") AS label'))->get();
+        $data['label'] = 'city';
+        $data['options'] = $getcity;
+        $collection = new Collection([$data]);
+        if (!$collection) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $collection);
+        }
+    }
+
+    public function pincodeDetails()
+    {
+        $getGmsPincode = GmsPincode::leftjoin('gms_city', 'gms_pincode.city_code', '=', 'gms_city.city_code')->select(
+            'gms_pincode.id',
+            'gms_pincode.pincode_value',
+            DB::raw('CONCAT(gms_city.city_name,"(",gms_city.city_code,")") AS city'),
+            'gms_pincode.pin_status AS remark',
+        )->where('gms_pincode.branch_id', $this->request->branch_id)->where('gms_pincode.is_deleted', 0)->get();
+
+        if (!$getGmsPincode) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $getGmsPincode);
+        }
+    }
+
+    public function pincodeTotalCount()
+    {
+        $sessionObject = session()->get('session_token');
+        $validator = Validator::make($this->request->all(), [
+            'branch_id' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $branchCity = explode("_", $this->request->branch_id);
+        $branch = $branchCity[0];
+        $city = $branchCity[1];
+
+        $total_pincode = GmsPincode::select(
+            DB::raw('COUNT(gms_pincode.id) AS total_pincode'),
+        )->where('gms_pincode.city_code', $city)->where('gms_pincode.is_deleted', 0)->get();
+        $total_used_by = GmsPincode::select(
+            DB::raw('COUNT(gms_pincode.id) AS total_used_by'),
+        )->where('gms_pincode.city_code', $city)->where('gms_pincode.branch_id', $branch)->where('gms_pincode.is_deleted', 0)->get();
+        $not_assigned = GmsPincode::select(
+            DB::raw('COUNT(gms_pincode.id) AS not_assigned'),
+        )->where('gms_pincode.city_code', $city)->where('gms_pincode.pin_status', '!=', 'A')->where('gms_pincode.is_deleted', 0)->get();
+
+        $data['total_pincode'] = $total_pincode[0]['total_pincode'];
+        $data['total_used_by'] = $total_used_by[0]['total_used_by'];
+        $data['total_assigned_other'] = $total_pincode[0]['total_pincode'] - $total_used_by[0]['total_used_by'];
+        $data['not_assigned'] = $not_assigned[0]['not_assigned'];
+
+        if (!$data) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $data);
+        }
+    }
+
+    public function pincodeListToAssigned()
+    {
+        $sessionObject = session()->get('session_token');
+        $validator = Validator::make($this->request->all(), [
+            'branch_id' => 'required',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $branchCity = explode("_", $this->request->branch_id);
+        $branch = $branchCity[0];
+
+        if ($this->request->has('city_id')) {
+            $city = explode(",", $this->request->city_id);
+        } else {
+            $city[] = $branchCity[1];
+        }
+        $data['assigned'] = GmsPincode::leftjoin('gms_city', 'gms_pincode.city_code', '=', 'gms_city.city_code')->select(
+            DB::raw('CONCAT(gms_city.city_name,"(",gms_city.city_code,")") AS city_name'),
+            'gms_pincode.pincode_value AS pincode',
+            DB::raw('"ASSIGNED" AS assigned'),
+        )->where('gms_pincode.branch_id', $branch)->where('gms_pincode.is_deleted', 0)->get();
+
+        $data['assigned_other'] = GmsPincode::leftjoin('gms_city', 'gms_pincode.city_code', '=', 'gms_city.city_code')->leftjoin('gms_office', 'gms_pincode.branch_id', '=', 'gms_office.office_code')->select(
+            DB::raw('CONCAT(gms_city.city_name,"(",gms_city.city_code,")") AS city_name'),
+            'gms_pincode.pincode_value AS pincode',
+            DB::raw('CONCAT("ASSIGNED TO ",gms_office.office_name) AS assigned'),
+        )->whereIn('gms_pincode.city_code', $city)->where('gms_pincode.is_deleted', 0)->get();
+        if (!$data) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $data);
+        }
+    }
+
+    public function assignedPincodeToBranch()
+    {
+        $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
+        $data = array();
+        $cnt = count($this->request->pincode_value);
+        for ($x = 0; $x < $cnt; $x++) {
+
+            $updatePincode = GmsPincode::where('pincode_value', $this->request->pincode_value[$x])->where('is_deleted', 0)->first();
+            if ($updatePincode) {
+                $input['pin_status'] = $this->request->pin_status[$x];
+                $input['branch_id'] = $this->request->branch_id;
+                $input['user_id'] = $admin->id;
+                $editPincode = GmsPincode::find($updatePincode->id);
+                $editPincode->update($input);
+            }
+            array_push($data, $editPincode);
+        }
+        if ($editPincode) {
+            return $this->successResponse(self::CODE_OK, "Update Successfully!!", $data);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
+        }
     }
 }
 

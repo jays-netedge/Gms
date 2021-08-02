@@ -330,11 +330,9 @@ class EmpController extends Controller
         return $this->view_employee();
     }
 
-
     public function viewAllEmployeeRo(Request $request)
     {
         $emp = GmsEmp::join('gms_office', 'gms_office.office_type', '=', 'gms_emp.emp_rep_offtype')->select('gms_emp.emp_name', 'gms_emp.emp_code', 'gms_emp.emp_rep_office', 'gms_emp.emp_rep_offtype', 'gms_emp.emp_city', 'gms_emp.emp_phone', 'gms_emp.emp_dept', 'gms_emp.emp_work_type', 'gms_emp.emp_status', 'gms_emp.status');
-
         if ($request->has('office_type')) {
             $emp->where('gms_office.office_type', $request->office_type);
         }
@@ -357,12 +355,11 @@ class EmpController extends Controller
 
     public function viewAllEmployee(Request $request)
     {
-
         $sessionObject = session()->get('session_token');
         $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
         $office_code = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
 
-        $emp = GmsEmp::join('gms_office', 'gms_office.office_type', '=', 'gms_emp.emp_rep_offtype')->select('gms_emp.emp_name', 'gms_emp.emp_code', 'gms_emp.emp_rep_office', 'gms_emp.emp_rep_offtype', 'gms_emp.emp_city', 'gms_emp.emp_phone', 'gms_emp.emp_dept', 'gms_emp.emp_work_type', 'gms_emp.emp_status', 'gms_emp.status');
+        $emp = GmsEmp::leftjoin('gms_office', 'gms_emp.emp_rep_office', '=', 'gms_office.office_code' )->where('gms_emp.emp_rep_office',$admin->office_code)->where('gms_emp.is_deleted', 0)->select('gms_emp.emp_name', 'gms_emp.emp_code', 'gms_emp.emp_rep_office', 'gms_emp.emp_rep_offtype', 'gms_emp.emp_city', 'gms_emp.emp_phone', 'gms_emp.emp_dept', 'gms_emp.emp_work_type', 'gms_emp.emp_status', 'gms_emp.status');
 
         if ($request->has('office_type')) {
             $emp->where('gms_office.office_type', $request->office_type);
@@ -381,8 +378,8 @@ class EmpController extends Controller
                 ->orWhere('gms_emp.emp_status', 'LIKE', '%' . $q . '%')
                 ->orWhere('gms_emp.status', 'LIKE', '%' . $q . '%');
         }
-        // $emp->where('emp_rep_offtype',);
-        // $emp->where('emp_rep_office',);
+
+        $emp->orderBy('gms_emp.emp_id', 'DESC');
         return $data = $emp->paginate($request->per_page);
     }
 

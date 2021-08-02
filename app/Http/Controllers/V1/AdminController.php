@@ -41,6 +41,7 @@ use App\Models\GmsZone;
 use App\Models\GmsCnnoStock;
 use App\Models\GmsBookPurchaseItem;
 use App\Models\GmsTaxTypeHistory;
+use App\Models\GmsRateZone;
 use App\Rules\MatchOldPassword;
 use App\Models\GmsFuelDefaultCharges;
 use Carbon\Carbon;
@@ -51,11 +52,19 @@ use App\Exports\PincodeExport;
 use App\Exports\OfficeExport;
 use App\Exports\ReasonExport;
 use App\Exports\AdminCustomerExport;
+use App\Exports\DepartmentExport;
+use App\Exports\DesignationExport;
+use App\Exports\EmployeeTypeExport;
+use App\Imports\PincodeImport;
+use App\Imports\CityImport;
+use App\Imports\ImportCnno;
+use PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Password;
 use App\Models\Admin;
 use App\Models\BookCatType;
 use App\Manager\CommonMgr;
@@ -72,10 +81,8 @@ class AdminController extends Controller
 {
 
     use AdminTrait;
-
     protected $request;
     protected $commonMgr;
-
 
     public function __construct(Request $request, CommonMgr $commonMgr)
     {
@@ -256,13 +263,15 @@ class AdminController extends Controller
                     ]);
                     $adminSession->save();
                     DB::commit();
-                    $office_details = GmsOffice::where('user_id', $admin->id)->first();
+                    $office_details = GmsOffice::where('office_code', $admin->office_code)->first();
+                    // $roOffice = GmsOffice::where('id', $office_details->office_under)->select('office_code','office_name')->first();
                     return $this->successResponse(self::CODE_OK, "Login Successfully!!", [
                         'session_token' => $adminSession->session_token,
                         'admin_name' => $admin->username,
                         'id' => $admin->id,
                         'email' => $admin->email,
                         'office_details' => isset($office_details) ? $office_details = $office_details : '',
+                       // 'ro_Office' => isset($roOffice) ? $roOffice: '',
                         'user_type' => $admin->user_type]);
                 } catch (\Exception $e) {
                     DB::rollback();
@@ -290,6 +299,17 @@ class AdminController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
         } else {
             return $this->successResponse(self::CODE_OK, "Show Office Successfully!!", $viewGmsOffice);
+        }
+    }
+
+
+    public function adminOfficeDetails()
+    {
+       $viewAdminDetails = Admin::where('id', '1')->where('is_deleted', 0)->first();
+        if (!$viewAdminDetails) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Admin Details Successfully!!", $viewAdminDetails);
         }
     }
 
@@ -408,6 +428,43 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
+    }
+
+    public function updateAdminProfile()
+    {
+        $input = $this->request->all();
+        $editAdmin = Admin::find(1);
+        $editAdmin->update($input);
+        return $this->successResponse(self::CODE_OK, "Admin Profile Update Successfully!!", $editAdmin);
+    }
+
+    public function forgot(Request $request)
+    {
+        $users = Admin::where('email', '=', $request->input('email'))->first();
+        if ($users === null) {
+            return response()->json(["msg" => 'Your email id does not exist.']);
+        } else {
+            $credentials = request()->validate(['email' => 'required|email']);
+            Password::sendResetLink($credentials);
+            return response()->json(["msg" => 'Reset password link sent on your email id.']);
+        }
+    }
+
+    public function reset()
+    {
+        $credentials = request()->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|confirmed'
+        ]);
+        $reset_password_status = Password::reset($credentials, function ($user, $password) {
+            $user->password = Hash::make($password);
+            $user->save();
+        });
+        if ($reset_password_status == Password::INVALID_TOKEN) {
+            return response()->json(["msg" => "Invalid token provided"], 400);
+        }
+        return response()->json(["msg" => "Password has been successfully changed"]);
     }
 
     /**
@@ -644,7 +701,6 @@ class AdminController extends Controller
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, "Something Error!!", $e);
         }
     }
-
 
     /**
      * @OA\Post(
@@ -1073,10 +1129,8 @@ class AdminController extends Controller
         if ($input['office_type'] == 'HO') {
             $office = $office_details->first();
             if (isset($office)) {
-
                 $response['validator_error'] = 'HO Already Exist';
                 $response['office_details'] = $office;
-
                 return $response;
             } else {
                 $data['office_code'] = $input['office_city'] . $input['office_type'];
@@ -1289,9 +1343,7 @@ class AdminController extends Controller
                 'gms_city.city_name',
                 'gms_pincode.pin_status'
             );
-
         return $viewPincode->paginate($request->per_page);
-
     }
 
     public function getEmpCode()
@@ -1306,7 +1358,6 @@ class AdminController extends Controller
         $data['emp_code'] = 'GMS' . $this->request->emp_type . $new_num;
         $data['emp_num'] = $new_num;
         return $data;
-
     }
 
     public function adminAddState(Request $request)
@@ -1336,7 +1387,6 @@ class AdminController extends Controller
     {
         $sessionObject = session()->get('session_token');
         $validator = Validator::make($request->all(), [
-
             'countries_iso_code_2' => 'required|unique:gms_countries',
             'countries_name' => 'required|unique:gms_countries',
         ]);
@@ -1377,7 +1427,6 @@ class AdminController extends Controller
     {
         $sessionObject = session()->get('session_token');
         $validator = Validator::make($request->all(), [
-
             'zone_code' => 'required|unique:gms_zone',
             'zone_name' => 'required|unique:gms_zone',
         ]);
@@ -1437,7 +1486,6 @@ class AdminController extends Controller
                 'gms_zone.zone_name',
             );
         return $gmsZone->paginate($request->per_page);
-
     }
 
     public function adminEditZone(Request $request)
@@ -1482,14 +1530,12 @@ class AdminController extends Controller
         $input['state_code'] = $addState->state_code;
         $addCity = new GmsCity($input);
         $addCity->save();
-
         return response()->json([
             'Country' => array_reverse(array($addCountry)),
             'State' => array_reverse(array($addState)),
             'City' => array_reverse(array($addCity)),
             'Zone' => array_reverse(array($addZone))
         ]);
-
     }
 
     public function exportCountry()
@@ -1527,6 +1573,122 @@ class AdminController extends Controller
         return Excel::download(new AdminCustomerExport, 'customers.xlsx');
     }
 
+    public function exportDepartment()
+    {
+        return Excel::download(new DepartmentExport, 'department.xlsx');
+    }
+
+    public function exportDesignation()
+    {
+        return Excel::download(new DesignationExport, 'designation.xlsx');
+    }
+
+    public function exportEmployeeType()
+    {
+        return Excel::download(new EmployeeTypeExport, 'employeeType.xlsx');
+    }
+
+    public function importCity(Request $request)
+    {
+        $sessionObject = session()->get('session_token');
+        $rows = Excel::toArray(new CityImport, $request->file('import_city'));
+        $cnt = count($rows[0]);
+        $stateCode = array();
+        $cityCode = array();
+        $cityName = array();
+        $metro = array();
+
+        for ($x = 1; $x < $cnt; $x++) {
+            array_push($stateCode, $rows[0][$x][0]);
+            array_push($cityCode, $rows[0][$x][1]);
+            array_push($cityName, $rows[0][$x][2]);
+            array_push($metro, $rows[0][$x][3]);
+        }
+        $city = count($stateCode);
+        for ($x = 0; $x < $city; $x++) {
+            GmsCity::insert([
+                'state_code' => $stateCode[$x],
+                'city_code' => $cityCode[$x],
+                'city_name' => $cityName[$x],
+                'metro' => $metro[$x],
+                'user_id' => $sessionObject->admin_id,
+            ]);
+        }
+        return response()->json(["message" => 'Successfully City Upload']);
+    }
+
+    public function ImportPincode(Request $request)
+    {
+        $sessionObject = session()->get('session_token');
+
+        $rows =  Excel::toArray(new PincodeImport, $request->file('pincodeImport'));
+
+        $cnt = count($rows[0]);
+
+        $pincode_value = array();
+        $city_code = array();
+        $service = array();
+        $courier = array();
+        $gold = array();
+        $logistics = array();
+        $regular = array();
+        $topay = array();
+        $cod = array();
+        $branch_id = array();
+        $pin_status = array();
+
+        for ($x = 1; $x < $cnt; $x++) {
+            array_push($pincode_value, $rows[0][$x][0]);
+            array_push($city_code, $rows[0][$x][1]);
+            array_push($service, $rows[0][$x][2]);
+            array_push($courier, $rows[0][$x][3]);
+            array_push($gold, $rows[0][$x][4]);
+            array_push($logistics, $rows[0][$x][5]);
+            array_push($regular, $rows[0][$x][6]);
+            array_push($topay, $rows[0][$x][7]);
+            array_push($cod, $rows[0][$x][8]);
+            array_push($branch_id, $rows[0][$x][9]);
+            array_push($pin_status, $rows[0][$x][10]);
+
+        }
+        $pincode_value_total = count($pincode_value);
+
+
+
+         try {
+
+            for ($x = 0; $x < $pincode_value_total; $x++) {
+              if(isset($pincode_value[$x]) && !empty($pincode_value[$x])){
+
+                $GmsPincode = new GmsPincode;
+
+                $GmsPincode->pincode_value  = $pincode_value[$x];
+                $GmsPincode->city_code      = $city_code[$x];
+                $GmsPincode->service  = $service[$x];
+                $GmsPincode->courier    = $courier[$x];
+                $GmsPincode->gold    = $gold[$x];
+                $GmsPincode->logistics    = $logistics[$x];
+                $GmsPincode->regular    = $regular[$x];
+                $GmsPincode->topay    = $topay[$x];
+                $GmsPincode->cod    = $cod[$x];
+                $GmsPincode->branch_id    = $branch_id[$x];
+                $GmsPincode->pin_status    = $pin_status[$x];
+                $GmsPincode->user_id    = $sessionObject->admin_id;
+                $GmsPincode->save();
+                }
+            }
+            if (isset($GmsPincode) && !empty($GmsPincode)) {
+                return $this->successResponse(self::CODE_OK, "Successfully Inserted!!");
+            } else {
+                return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Something went wrong!!");
+            }
+
+        } catch (\Exception $e) {
+                return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, $e);
+            }
+
+    }
+
     public function adminEditState(Request $request)
     {
         $sessionObject = session()->get('session_token');
@@ -1536,7 +1698,6 @@ class AdminController extends Controller
             'state_name' => 'unique:gms_state,state_name,' . $this->request->state_id,
             'zone_id' => 'required',
             'state_id' => 'required'
-
         ]);
         if ($validator->fails()) {
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
@@ -1554,7 +1715,6 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
-
     }
 
     public function adminAddCity()
@@ -1574,7 +1734,6 @@ class AdminController extends Controller
         $addGmsCity = new GmsCity($input);
         $addGmsCity->save();
         return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addGmsCity);
-
     }
 
     public function adminEditCity(Request $request)
@@ -1600,7 +1759,6 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
-
     }
 
     /**
@@ -1650,7 +1808,6 @@ class AdminController extends Controller
         $getCountryStateZone->join('gms_countries', 'gms_state.country_id', '=', 'gms_countries.id');
         $getCountryStateZone->join('gms_zone', 'gms_state.zone_id', '=', 'gms_zone.id');
         return $getCountryStateZone->paginate($request->per_page);
-
     }
 
     /**
@@ -1780,7 +1937,6 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
-
     }
 
     public function adminAddReason()
@@ -1851,7 +2007,6 @@ class AdminController extends Controller
     public function viewAllCustomerList(Request $request)
     {
         $bookCategory = GmsCustomer::join('gms_office', 'gms_customer.cust_rep_office', '=', 'gms_office.office_code')->where('gms_customer.is_deleted', 0)->select('gms_customer.id', 'gms_customer.cust_code', 'gms_customer.cust_name', 'gms_customer.cust_type',
-
             DB::raw('CONCAT(gms_customer.cust_rep_office,"-",gms_office.office_name) AS cust_rep_office'),
             'gms_customer.cust_reach', 'gms_customer.approved_status');
         return $bookCategory->paginate($request->per_page);
@@ -1877,7 +2032,6 @@ class AdminController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'Id Not Found');
         } else {
             return $response;
-
         }
     }
 
@@ -3015,10 +3169,53 @@ class AdminController extends Controller
      */
     public function viewCnnoBookingStock(Request $request)
     {
-        $getBookingStock = GmsBookPurchaseItem::join('gms_book_category', 'gms_book_purchase_item.book_cat_id', '=', 'gms_book_category.id')->join('gms_book_cat_range', 'gms_book_purchase_item.book_cat_id', '=', 'gms_book_cat_range.book_cat_id')->select('gms_book_category.book_cat_name as category',
-            'gms_book_cat_range.cnno_start as from', 'gms_book_cat_range.cnno_end as to', 'gms_book_purchase_item.from_range as from_cnno', 'gms_book_purchase_item.to_range as to_cnno', 'gms_book_purchase_item.item_quantity as quentity_left');
+        $getBookingStock = GmsBookPurchaseItem::join('gms_book_category', 'gms_book_purchase_item.book_cat_id', '=', 'gms_book_category.id')
+        ->join('gms_book_cat_range', 'gms_book_purchase_item.book_cat_id', '=', 'gms_book_cat_range.book_cat_id')
+        ->select(
+            'gms_book_category.book_cat_name as category',
+            'gms_book_cat_range.cnno_start as from',
+            'gms_book_cat_range.cnno_end as to',
+            DB::raw('((gms_book_cat_range.cnno_end - gms_book_cat_range.cnno_start)+1) AS qty'),
+            'gms_book_purchase_item.from_range as from_cnno',
+            'gms_book_purchase_item.to_range as to_cnno',
+            'gms_book_purchase_item.item_quantity as quentity_left'
+        );
         return $getBookingStock->paginate($request->per_page);
 
+    }
+
+
+    public function selectRangeStockView(Request $request)
+    {
+        $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
+        $Range = GmsBookCatRange::leftjoin('gms_book_category','gms_book_cat_range.book_cat_id','=','gms_book_category.id')->select(
+            'gms_book_category.id as value',
+            DB::raw('CONCAT(gms_book_category.book_cat_name,"(",gms_book_cat_range.cnno_start,"-",gms_book_cat_range.cnno_end,")") As label'),
+        )->where('gms_book_cat_range.is_deleted', 0)->orderBy('gms_book_cat_range.id', 'asc')->get();
+        $data['label'] = 'Range';
+        $data['options'] = $Range;
+        $collection = new Collection([$data]);
+        return $collection;
+    }
+
+    public function stockInStockView(Request $request)
+    {
+
+        $adminSession = session()->get('session_token');
+        $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+
+        $Range = GmsBookPurchaseItem::leftjoin('gms_book_category','gms_book_purchase_item.book_cat_id','=','gms_book_category.id')->select(
+            'gms_book_purchase_item.id as value',
+            DB::raw('CONCAT(gms_book_purchase_item.id,"(",gms_book_purchase_item.from_range,"-",gms_book_purchase_item.to_range,")") As label'),
+        )->where('gms_book_purchase_item.is_deleted', 0)->where('gms_book_purchase_item.book_cat_id',$this->request->cat_id)->orderBy('gms_book_purchase_item.id', 'asc')->get();
+        $data['label'] = 'Range';
+        $data['options'] = $Range;
+        $collection = new Collection([$data]);
+        return $collection;
     }
 
     /**
@@ -4654,6 +4851,47 @@ class AdminController extends Controller
         return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addRate);
     }
 
+    public function editZoneRate()
+    {
+        $input = $this->request->all();
+        $data = array();
+        $getRateZone = GmsRateZone::where('id', $input['zoneRate_id'])->where('is_deleted', 0)->first();
+        if ($getRateZone) {
+            $editRateZone = GmsRateZone::find($getRateZone->id);
+            $editRateZone->update($input);
+            $data['zoneRate'] = $getRateZone;
+            return $this->successResponse(self::CODE_OK, "Update Successfully!!", $data);
+        }
+
+         $getRateService = GmsRateZoneService::where('id', $input['zoneRateServiceId'])->where('is_deleted',0)->first();
+          if ($getRateService) {
+                $editRateCodeHistory = GmsRateZoneService::where('id', $getRateService->id)
+                   ->update([
+                    'rate' => $this->request->rate
+                    ]);
+            $data['RateService'] = $editRateCodeHistory;
+            return $this->successResponse(self::CODE_OK, "Update Successfully!!", $data);
+        }
+
+        if(isset($data)){
+            return $this->successResponse(self::CODE_OK, "Updated Successfully!!",$data);
+        }else{
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Something went Wrong!!");
+        }
+    }
+
+
+    public function getZoneRate()
+    {
+        $adminSession = session()->get('session_token');
+        $response = array();
+        $response['ro_transhipment'] = GmsRateZone::where('service_type','RT')->select('id','dest','via','rate_wt','rate_amt','add_rate_wt','add_rate_amt')->where('is_deleted',0)->get();
+        $response['direct_cities'] = GmsRateZone::where('service_type','DC')->select('id','dest','via','rate_wt','rate_amt','add_rate_wt','add_rate_amt')->where('is_deleted',0)->get();
+        $response['services'] = GmsRateZoneService::select('id','zone_service_type','zone_book_service','weight','rate')->where('is_deleted',0)->get();
+        return $response;
+
+    }
+
     /**
      * @OA\Get(
      * path="/viewRateMaster",
@@ -5243,7 +5481,6 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Id Not Found");
         }
-
     }
 
     /**
@@ -5612,7 +5849,7 @@ class AdminController extends Controller
             return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
         }
         $input = $this->request->all();
-        $getGmsPaymentOffice = GmsPaymentOffice::where('id', $input['payment_id'])->first();;
+        $getGmsPaymentOffice = GmsPaymentOffice::where('id', $input['payment_id'])->first();
         if ($getGmsPaymentOffice != null) {
             $getGmsPaymentOffice->is_deleted = 1;
             $getGmsPaymentOffice->save();
@@ -5620,6 +5857,24 @@ class AdminController extends Controller
         } else {
             return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Payment ID Not Found");
         }
+    }
+
+    public function adminPaymentDetails()
+    {
+         $validator = Validator::make($this->request->all(), [
+            'payment_id' => 'required|exists:gms_payment_office,id',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+        $input = $this->request->all();
+        $getGmsPaymentOffice = GmsPaymentOffice::where('id', $input['payment_id'])->select('invoice_receipt','office_code','paid_through','bank_name','check_no','check_date','deposit_DD','amount','description','posted_date')->first();
+        return $this->successResponse(self::CODE_OK, "view Details  Successfully!!",$getGmsPaymentOffice);
+    }
+
+    public function CnnoGen(Request $request)
+    {
+        $rows = Excel::toArray(new ImportCnno , $request->file('cnnoGen'));
     }
 
     public function adminCountryList()
@@ -5817,5 +6072,10 @@ class AdminController extends Controller
             "gmsPmfDtls" => $gmsPmfDtls,
             "gmsDmfDtls" => $gmsDmfDtls
         ]);
+    }
+
+    public function editBookReturnStatus()
+    {
+        return $this->bookReturnStatusEdit();
     }
 }

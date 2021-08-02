@@ -76,25 +76,19 @@ class ReportController extends Controller
 
         if (isset($from_date) || isset($to_date) || isset($book_product_type) || isset($book_doc) || isset($book_mode) || isset($book_service_type) || isset($book_cust_type) || isset($book_cust_code) || isset($book_cnno) || isset($book_pin)) {
             if ($from_date && $to_date) {
-
-
                 $query2->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
             }
             if (isset($book_product_type)) {
-
                 $query2->where('gms_booking_dtls.book_product_type', $book_product_type);
             }
             if (isset($book_doc)) {
-
                 $query2->where('gms_booking_dtls.book_doc', $book_doc);
 
             }
             if (isset($book_mode)) {
-
                 $query2->where('gms_booking_dtls.book_mode', $book_mode);
             }
             if (isset($book_service_type)) {
-
                 $query2->where('gms_booking_dtls.book_service_type', $book_service_type);
             }
             if (isset($office)) {
@@ -118,12 +112,11 @@ class ReportController extends Controller
                 $query2->where('gms_booking_dtls.book_pin', $book_pin);
             }
 
-            $query2->orderBy('book_mfdate', 'DESC');
+            $query2->where('gms_booking_dtls.is_deleted', 0);
+            $query2->orderBy('gms_booking_dtls.id', 'DESC');
         }
-
         $response['Status']['count'] = $query2->get();
         return $response;
-
     }
 
     public function bookingStats()
@@ -347,6 +340,7 @@ class ReportController extends Controller
         $adminSession = session()->get('session_token');
         $admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
         $office = GmsOffice::where('office_code', $admin->office_code)->where('is_deleted', 0)->first();
+        
         $input = $this->request->all();
         $from_date = $this->request->from_date;
         $to_date = $this->request->to_date;
@@ -384,7 +378,6 @@ class ReportController extends Controller
         $bookingAnalyticRep = GmsBookingDtls::leftjoin('gms_customer', 'gms_booking_dtls.book_cust_code', '=', 'gms_customer.cust_code')->select(
             'gms_booking_dtls.id',
             'gms_booking_dtls.book_cust_type',
-
             DB::raw('concat(gms_booking_dtls.book_cust_code,"-",gms_customer.cust_la_ent)As Customers'),
             DB::raw('count(gms_booking_dtls.book_cnno) as totalCnno'),
             /*DB::raw('count(gms_booking_dtls.book_weight) as totalWeight'),
@@ -393,9 +386,7 @@ class ReportController extends Controller
             DB::raw('count(gms_booking_dtls.book_billamt) as totalAmt'),*/
             'gms_booking_dtls.book_mfdate'
         );
-
         if ($request->has('from_date') && $request->has('to_date')) {
-
             $bookingAnalyticRep->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
         }
         if ($request->has('branch_name')) {
@@ -420,13 +411,11 @@ class ReportController extends Controller
         );
         $data['details'] = $bookingAnalyticRep->get();
         $qauantity = 0;
-
         foreach ($data['details'] as $row) {
             # code...
             $qauantity = $qauantity + $row['totalCnno'];
         }
         $data['grand_tot_cnno'] = $qauantity;
-
         return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
         /*return $bookingAnalyticRep->paginate($request->per_page);*/
     }
@@ -442,7 +431,6 @@ class ReportController extends Controller
         $branch_name = $this->request->branch_name;
         $booking_type = $this->request->booking_type;
         $customer = $this->request->customer;
-
 
         $bookingAnalyticRep = GmsDmfDtls::leftjoin('gms_customer', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer.cust_code')->select(
             'gms_dmf_dtls.dmf_type AS cust_type',
@@ -486,7 +474,6 @@ class ReportController extends Controller
 
         );
         $data['details'] = $bookingAnalyticRep->get();
-
         return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
     }
 
@@ -494,8 +481,8 @@ class ReportController extends Controller
     {
         $adminSession = session()->get('session_token');
 
-        /*$admin = Admin::where('id', $adminSession->admin_id)->first();
-        $office = GmsOffice::where('id', $admin->office_id)->first();*/
+        /*$admin = Admin::where('id', $adminSession->admin_id)->where('is_deleted', 0)->first();
+        $office = GmsOffice::where('id', $admin->office_id)->->where('is_deleted', 0)->first();*/
 
         $from_date = $this->request->from_date;
         $to_date = $this->request->to_date;
@@ -506,13 +493,13 @@ class ReportController extends Controller
         $cust_code = $this->request->cust_code;
         $type = $this->request->type;
 
-        $dataSearch = GmsBookingDtls::join('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')
-            ->join('gms_city as org', 'org.city_code', '=', 'gms_booking_dtls.book_org')
-            ->join('gms_office as org_ro', 'org_ro.office_city', '=', 'gms_booking_dtls.book_org')
-            ->join('gms_city as dest', 'dest.city_code', '=', 'gms_booking_dtls.book_dest')
-            ->join('gms_office as dest_ro', 'dest_ro.office_city', '=', 'gms_booking_dtls.book_dest')
-            /*->join('gms_dmf_dtls', 'gms_dmf_dtls.dmf_cnno', '=', 'gms_booking_dtls.book_cnno')*/
-            ->join('gms_emp', 'gms_emp.emp_code', '=', 'gms_booking_dtls.book_emp_code')
+        $dataSearch = GmsBookingDtls::leftjoin('gms_customer', 'gms_customer.cust_code', '=', 'gms_booking_dtls.book_cust_code')
+            ->leftjoin('gms_city as org', 'org.city_code', '=', 'gms_booking_dtls.book_org')
+            ->leftjoin('gms_office as org_ro', 'org_ro.office_city', '=', 'gms_booking_dtls.book_org')
+            ->leftjoin('gms_city as dest', 'dest.city_code', '=', 'gms_booking_dtls.book_dest')
+            ->leftjoin('gms_office as dest_ro', 'dest_ro.office_city', '=', 'gms_booking_dtls.book_dest')
+            ->leftjoin('gms_emp', 'gms_emp.emp_code', '=', 'gms_booking_dtls.book_emp_code')
+            ->leftjoin('gms_pmf_dtls', 'gms_booking_dtls.book_cnno', '=', 'gms_pmf_dtls.pmf_cnno')
             ->select(
                 'gms_booking_dtls.book_cnno',
                 DB::raw('DATE_FORMAT(gms_booking_dtls.book_mfdate, "%d %b, %Y") as date'),
@@ -529,36 +516,39 @@ class ReportController extends Controller
                 DB::raw('COUNT(gms_booking_dtls.book_cod) as book_cod_inv'),
                 'gms_emp.emp_name as dlv_agent',
 
-            /*DB::raw('CONCAT(CASE WHEN gms_dmf_dtls.dmf_cn_status = D THEN "DELIVERED" END) AS total_recevied'),*/
-
-            /*DB::raw('CONCAT(gms_dmf_dtls.dmf_cn_status,"(",gms_dmf_dtls.dmf_pod_status,")") as book_curr_status')*/
             );
-        //print_r($type);die;
-
-        if ($request->has('from_date') && $request->has('to_date')) {
+        //  $dataSearch->where('gms_pmf_dtls.is_deleted', 0);
+        if (isset($from_date) && isset($to_date)) {
             $dataSearch->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
-            $dataSearch->where('gms_booking_dtls.is_deleted', 0);
-            if (empty($out) && isset($in)) {
+        }
+        if (isset($serv_type)) {
+            $dataSearch->where('gms_booking_dtls.book_service_type', $serv_type);
+        }
+        if ($request->has('cust_type') && $request->has('cust_code')) {
 
-                //$dataSearch->where('gms_booking_dtls.book_org', $admin->office_code);
-                $data['in'] = $dataSearch->get();
-            } elseif (isset($out) && empty($in)) {
-
-                //$dataSearch->where('gms_booking_dtls.book_dest', $admin->office_code);
-                $data['out'] = $dataSearch->get();
-            } elseif (isset($out) && isset($in)) {
-                $data['in'] = $dataSearch->get();
-                $data['out'] = $dataSearch->get();
-            } else {
-                $dataSearch->whereBetween('gms_booking_dtls.book_mfdate', [$from_date, $to_date]);
-                $dataSearch->where('gms_booking_dtls.is_deleted', 0);
-
-                $data = $dataSearch->get();
-                // return $query;
-            }
-
+            $dataSearch->where('gms_booking_dtls.book_cust_type', $cust_type);
+            $dataSearch->where('gms_booking_dtls.book_cust_code', $cust_code);
+            //// $dataSearch->where('gms_pmf_dtls.is_deleted', 0);
+            $data = $dataSearch->get();
             return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
         }
+        if (empty($out) && isset($in)) {
+
+            $dataSearch->where('gms_pmf_dtls.pmf_type', 'IPMF');
+            $data['in'] = $dataSearch->get();
+        } elseif (isset($out) && empty($in)) {
+
+            $dataSearch->where('gms_pmf_dtls.pmf_type', 'OPMF');
+            $data['out'] = $dataSearch->get();
+        } elseif (isset($out) && isset($in)) {
+            $dataSearch->where('gms_pmf_dtls.pmf_type', 'IPMF');
+            $data['in'] = $dataSearch->get();
+            $dataSearch->where('gms_pmf_dtls.pmf_type', 'OPMF');
+            $data['out'] = $dataSearch->get();
+        } else {
+            $data = $dataSearch->get();
+        }
+        return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
     }
 
     public function outGoingReport(Request $request)
@@ -649,7 +639,6 @@ class ReportController extends Controller
                     'gms_pmf_dtls.pmf_cd_no',
                     'gms_pmf_dtls.pmf_status',
                     'gms_pmf_dtls.pmf_doc',
-
                 );
                 $query = GmsPmfDtls::select(
                     DB::raw('count(DISTINCT pmf_no)as totalIPmf'),
@@ -661,11 +650,11 @@ class ReportController extends Controller
                     $reportQuery->whereBetween('gms_pmf_dtls.pmf_date', [$from_date, $to_date]);
                 }
                 if (isset($dox_type)) {
-                    $query->where('gms_pmf_dtls.pmf_doc',$dox_type);
+                    $query->where('gms_pmf_dtls.pmf_doc', $dox_type);
                     $reportQuery->where('gms_pmf_dtls.pmf_doc', $dox_type);
                 }
                 if (isset($origin_bo)) {
-                    $query->where('gms_pmf_dtls.pmf_ro',$origin_zo);
+                    $query->where('gms_pmf_dtls.pmf_ro', $origin_zo);
                     $reportQuery->where('gms_pmf_dtls.pmf_ro', $origin_zo);
                 }
                 $response['Status']['count'] = $query->get();
@@ -686,103 +675,62 @@ class ReportController extends Controller
         $agent = $request->agent;
         $branch = $request->branch;
         $group_by = $request->group_by;
-        $status = $request->status;
+        $cnno = $request->cnno;
 
+        if ($request->type == "updated") {
+            $query = GmsDmfDtls::select(
+                DB::raw('count(DISTINCT dmf_cnno)as totalDrs'),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno) WHERE dmf_cn_status ='D'), 0)  as updated"),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
+            );
 
-        
-
-        if (isset($from_date) || isset($to_date)) {
-            if (isset($group_by)) {
-
-                $reportQuery2 = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
-                    'dmf_mfno',
-                    DB::raw('concat("[",gms_dmf_dtls.dmf_date,",",gms_dmf_dtls.dmf_time,"]") As dateTime'),
-                    'gms_dmf_dtls.dmf_emp',
-                    'gms_emp.emp_name',
-                    'gms_dmf_dtls.dmf_branch',
-                    'gms_dmf_dtls.dmf_cnno_current_status',
-                    'gms_dmf_dtls.dmf_cnno',
-                    'gms_dmf_dtls.dmf_pin',
-                    'gms_city.city_name',
-                    'gms_dmf_dtls.dmf_wt',
-                    'gms_dmf_dtls.dmf_delv_amt',
-                    'gms_dmf_dtls.dmf_atmpt_date',
-                    'gms_dmf_dtls.dmf_actual_date',
-                    'gms_dmf_dtls.dmf_ndel_reason',
-                    'gms_dmf_dtls.dmf_remarks',
-                    'gms_dmf_dtls.dmf_delv_remarks',
-                    'gms_dmf_dtls.dmf_pod_status'
-
-                );
-                $query2 = GmsDmfDtls::select(
-                    DB::raw('count(DISTINCT dmf_mfno)as totalDrs'),
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
-                    /*DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
-                    /*DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
-                /*DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),*/
-                );
-                $response['Status']['count'] = $query2->get();
-                $response['Status']['report'] = $reportQuery2->get();
-            } else {
-
-                $reportQuery = GmsDmfDtls::join('gms_emp', 'gms_dmf_dtls.dmf_emp', '=', 'gms_emp.emp_code')->join('gms_city', 'gms_dmf_dtls.dmf_dest', '=', 'gms_city.city_code')->select(
-                    'dmf_mfno',
-                    DB::raw('concat("[",gms_dmf_dtls.dmf_mfdate,",",gms_dmf_dtls.dmf_mftime,"]") As dateTime'),
-                    'gms_dmf_dtls.dmf_emp',
-                    'gms_emp.emp_name',
-                    'gms_dmf_dtls.dmf_branch',
-                    'gms_dmf_dtls.dmf_cnno_current_status',
-                    'gms_dmf_dtls.dmf_cnno',
-                    'gms_dmf_dtls.dmf_pin',
-                    'gms_city.city_name',
-                    'gms_dmf_dtls.dmf_wt',
-                    'gms_dmf_dtls.dmf_delv_amt',
-                    'gms_dmf_dtls.dmf_atmpt_date',
-                    'gms_dmf_dtls.dmf_actual_date',
-                    'gms_dmf_dtls.dmf_ndel_reason',
-                    'gms_dmf_dtls.dmf_remarks',
-                    'gms_dmf_dtls.dmf_delv_remarks',
-                    'gms_dmf_dtls.dmf_pod_status'
-                );
-                $query = GmsDmfDtls::select(
-                    DB::raw('count(DISTINCT dmf_mfno)as totalDrs'),
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
-                    /*DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
-                    /*DB::raw("COUNT(CASE WHEN (SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status = 'N') <> null THEN 0 END) AS total_recevied"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
-                /*DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),*/
-
-                );
-                if ($from_date && $to_date) {
-                    $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
-                }
-                if (isset($agent)) {
-                    $query->where('gms_dmf_dtls.dmf_fr_code',$agent);
-                }
-                if (isset($branch)) {
-                    $query->where('gms_dmf_dtls.dmf_branch',$branch);
-                }
-                if (isset($status) && $status=="N") {
-                    $query->where('gms_dmf_dtls.dmf_cn_status',"D");
-                }
-                if (isset($status) && $status=="U") {
-                    $query->where('gms_dmf_dtls.dmf_cn_status',"!=","D");
-                }
-                if (isset($group_by)) {
-                    $query->groupBy('gms_dmf_dtls.dmf_mfdate');
-                }
-                
-
-                $response['Status']['count'] = $query->get();
-                $response['Status']['report'] = $reportQuery->get();
+            if ($from_date && $to_date) {
+                $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
             }
-        } else {
-            $response['Status'] = "Data Not Found";
+            if (isset($agent)) {
+                $query->where('gms_dmf_dtls.dmf_fr_code', $agent);
+            }
+            if (isset($branch)) {
+                $query->where('gms_dmf_dtls.dmf_branch', $branch);
+            }
+            // if (isset($group_by)) {
+            //     $query->groupBy('gms_dmf_dtls.dmf_mfdate');
+            // }
+            if (isset($cnno)) {
+                $query->groupBy('gms_dmf_dtls.dmf_cnno', $cnno);
+            }
+            $response['data']['count'] = $query->get();
+            return $response;
+
+        } elseif ($request->type == "notUpdated") {
+            $query = GmsDmfDtls::select(
+                DB::raw('count(DISTINCT dmf_cnno)as totalDrs'),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno) WHERE dmf_cn_status !='D'), 0)  as updated"),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno)  WHERE dmf_cn_status !='D'), 0)  as Notupdated"),
+                //  DB::raw("COUNT(CASE WHEN (SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status = 'N') <> null THEN 0 END) AS total_recevied"),
+                DB::raw("IFNULL((SELECT COUNT(dmf_cnno) WHERE dmf_pod_status != '1' ), 0)  as podsupdated"),
+                DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),
+            );
+
+            if ($from_date && $to_date) {
+                $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
+            }
+            if (isset($agent)) {
+                $query->where('gms_dmf_dtls.dmf_fr_code', $agent);
+            }
+            if (isset($branch)) {
+                $query->where('gms_dmf_dtls.dmf_branch', $branch);
+            }
+            // if (isset($group_by)) {
+            //     $query->groupBy('gms_dmf_dtls.dmf_mfdate');
+            // }
+            if (isset($cnno)) {
+                $query->groupBy('gms_dmf_dtls.dmf_cnno');
+            }
+            $response['Status']['count'] = $query->get();
+            return $response;
         }
-        return $response;
     }
 
     public function drsBoWiseReports(Request $request)
@@ -792,30 +740,30 @@ class ReportController extends Controller
         $office_type = $request->office_type;
         $office = $request->office;
 
-         $query = GmsDmfDtls::select(
-                    DB::raw('count(dmf_mfno)as totalDmf'),
-                    DB::raw('count(DISTINCT dmf_cnno)as totalCnno'),
-                    DB::raw('count(DISTINCT dmf_wt)as totalWight'),
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
-                    /*DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
-                    /*DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"),*/
-                    DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
-                /*DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),*/
-                );
+        $query = GmsDmfDtls::select(
+            DB::raw('count(dmf_mfno)as totalDmf'),
+            DB::raw('count(DISTINCT dmf_cnno)as totalCnno'),
+            DB::raw('count(DISTINCT dmf_wt)as totalWight'),
+            DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
+            /*DB::raw("(SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D') as updated"),*/
+            DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
+            /*DB::raw("(SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N') as Notupdated"),*/
+            DB::raw("IFNULL((SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ), 0)  as podsupdated"),
+        /*DB::raw("(SELECT COUNT(dmf_pod_status) WHERE dmf_pod_status = '0' ) as podsupdated"),*/
+        );
 
-            if ($from_date && $to_date) {
-                    $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
-                }
-            if ($office) {
-                $query->where('gms_dmf_dtls.dmf_branch', $office);
-            }
+        if ($from_date && $to_date) {
+            $query->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
+        }
+        if ($office) {
+            $query->where('gms_dmf_dtls.dmf_branch', $office);
+        }
 
-            $query->groupBy('gms_dmf_dtls.dmf_branch');
-            $response['Status'] = $query->get();
+        $query->groupBy('gms_dmf_dtls.dmf_branch');
+        $response['Status'] = $query->get();
     }
-    
-        public function dmfCustomerWise(Request $request)
+
+    public function dmfCustomerWise(Request $request)
     {
         $from_date = $request->from_date;
         $to_date = $request->to_date;
@@ -823,11 +771,8 @@ class ReportController extends Controller
         $branch = $request->branch;
         $delivery_type = $request->delivery_type;
 
-
-
         $sessionObject = session()->get('session_token');
         $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
-
         $query = GmsDmfDtls::where('dmf_branch', $admin->office_code)->select(
             'dmf_type',
             'dmf_fr_code',
@@ -835,20 +780,19 @@ class ReportController extends Controller
             DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
             DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
         );
-
         if (isset($from_date) || isset($to_date)) {
             $query->whereBetween('dmf_mfdate', [$from_date, $to_date]);
             if (isset($agent)) {
-                    $query->where('gms_dmf_dtls.dmf_fr_code',$agent);
+                $query->where('gms_dmf_dtls.dmf_fr_code', $agent);
             }
             if (isset($branch)) {
-                $query->where('gms_dmf_dtls.dmf_branch',$branch);
+                $query->where('gms_dmf_dtls.dmf_branch', $branch);
             }
-            if (isset($status) && $status=="N") {
-                $query->where('gms_dmf_dtls.dmf_cn_status',"D");
+            if (isset($status) && $status == "N") {
+                $query->where('gms_dmf_dtls.dmf_cn_status', "D");
             }
-            if (isset($status) && $status=="U") {
-                $query->where('gms_dmf_dtls.dmf_cn_status',"!=","D");
+            if (isset($status) && $status == "U") {
+                $query->where('gms_dmf_dtls.dmf_cn_status', "!=", "D");
             }
             if (isset($group_by)) {
                 $query->groupBy('gms_dmf_dtls.dmf_mfdate');
@@ -858,7 +802,6 @@ class ReportController extends Controller
             return 'No Data Found';
         }
     }
-
 
     public function empReport(Request $request)
     {
@@ -970,30 +913,30 @@ class ReportController extends Controller
         }
     }
 
-    // public function dmfCustomerWise(Request $request)
-    // {
-    //     $from_date = $request->from_date;
-    //     $to_date = $request->to_date;
-    //     $office_type = $request->office_type;
-    //     $branch_type = $request->branch_type;
-    //     $delivery_type = $request->delivery_type;
+// public function dmfCustomerWise(Request $request)
+// {
+//     $from_date = $request->from_date;
+//     $to_date = $request->to_date;
+//     $office_type = $request->office_type;
+//     $branch_type = $request->branch_type;
+//     $delivery_type = $request->delivery_type;
 
-    //     $sessionObject = session()->get('session_token');
-    //     $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
-    //     $query = GmsDmfDtls::where('dmf_branch', $admin->office_code)->select(
-    //         'dmf_type',
-    //         'dmf_fr_code',
-    //         DB::raw('count(dmf_cnno)as totalCnno'),
-    //         DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
-    //         DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
-    //     );
-    //     if (isset($from_date) || isset($to_date)) {
-    //         $query->whereBetween('dmf_mfdate', [$from_date, $to_date]);
-    //         return $query->get();
-    //     } else {
-    //         return 'No Data Found';
-    //     }
-    // }
+//     $sessionObject = session()->get('session_token');
+//     $admin = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+//     $query = GmsDmfDtls::where('dmf_branch', $admin->office_code)->select(
+//         'dmf_type',
+//         'dmf_fr_code',
+//         DB::raw('count(dmf_cnno)as totalCnno'),
+//         DB::raw("IFNULL((SELECT COUNT(dmf_cn_status) WHERE dmf_cn_status ='D'), 0)  as updated"),
+//         DB::raw("IFNULL((SELECT COUNT(dmf_cn_status)  WHERE dmf_cn_status ='N'), 0)  as Notupdated"),
+//     );
+//     if (isset($from_date) || isset($to_date)) {
+//         $query->whereBetween('dmf_mfdate', [$from_date, $to_date]);
+//         return $query->get();
+//     } else {
+//         return 'No Data Found';
+//     }
+// }
 
     public function bookingAdminReport(Request $request)
     {
@@ -1107,7 +1050,6 @@ class ReportController extends Controller
         $cnno = GmsPmfDtls::select(
             DB::raw('SUM(pmf_pcs) - SUM(pmf_received_pcs) as totalPendingCnno'),
         );
-
         $cnno->where('is_deleted', 0);
         if ($from_date && $to_date) {
             $cnno->whereBetween('pmf_date', [$from_date, $to_date]);
@@ -1172,9 +1114,7 @@ class ReportController extends Controller
         $groupby = $this->request->groupby;
 
         if ($report_type == "D") {
-
             $bookingAnalyticRep = GmsDmfDtls::leftjoin('gms_customer', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer.cust_code')->select(
-
                 'gms_dmf_dtls.dmf_type AS customer_type',
                 DB::raw('concat(gms_dmf_dtls.dmf_fr_code,"-",gms_customer.cust_la_ent)As customer_name'),
                 DB::raw('count(gms_dmf_dtls.dmf_mfno) as totalMf'),
@@ -1187,7 +1127,6 @@ class ReportController extends Controller
                 DB::raw('count(gms_dmf_dtls.dmf_atmpt_date) as count_days'),
                 DB::raw('CONCAT(DATEDIFF(gms_dmf_dtls.dmf_atmpt_date, gms_dmf_dtls.dmf_mfdate)+1) as days'),
             );
-
             if ($request->has('from_date') && $request->has('to_date')) {
                 $days->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
             }
@@ -1584,7 +1523,6 @@ class ReportController extends Controller
         $deliver_type = $request->deliver_type;
         $groupby = $request->groupby;
 
-     
         $booking = GmsBookingDtls::select(
             DB::raw('COUNT(CASE WHEN gms_booking_dtls.book_cnno THEN 0 END) As booking'),
             'book_mfdate');
@@ -1596,7 +1534,7 @@ class ReportController extends Controller
 
         $delivered = GmsDmfDtls::select(
             DB::raw("count(CASE WHEN gms_dmf_dtls.dmf_cn_status = 'D' THEN gms_dmf_dtls.dmf_cnno END) as delivered"));
-        
+
         $deliveredPod = GmsDmfDtls::select(
             DB::raw("count(CASE WHEN gms_dmf_dtls.dmf_pod_status = '1' THEN gms_dmf_dtls.dmf_pod_status END) as delivered"));
 
@@ -1607,7 +1545,6 @@ class ReportController extends Controller
             $delivered->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
             $deliveredPod->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
         }
-
         if ($request->has('branch_name')) {
             $booking->where('gms_booking_dtls.book_br_code', $branch_name);
             $outgoing->where('gms_pmf_dtls.pmf_origin', $branch_name);
@@ -1615,7 +1552,6 @@ class ReportController extends Controller
             $delivered->where('gms_dmf_dtls.dmf_branch', $branch_name);
             $deliveredPod->where('gms_dmf_dtls.dmf_branch', $branch_name);
         }
-
         if ($request->has('customer')) {
             $booking->where('gms_booking_dtls.book_emp_code', $customer);
             $outgoing->where('gms_pmf_dtls.pmf_emp_code', $customer);
@@ -1631,100 +1567,87 @@ class ReportController extends Controller
             'from_date' => $from_date,
             'to_date' => $to_date
         );
-
 //Booking
-        $data['booking'] = $booking->groupBy('book_mfdate')->get();      
+        $data['booking'] = $booking->groupBy('book_mfdate')->get();
         $totbook = 0;
         for ($x = 0; $x < count($data['booking']); $x++) {
             $data['booking'][$x]->booking;
             $totbook = $totbook + $data['booking'][$x]->booking;
         }
-//Outgoing      
+//Outgoing
         $data['outgoing'] = $outgoing->get();
         $totOut = 0;
-        for($x = 0; $x < count($data['outgoing']); $x++) {
+        for ($x = 0; $x < count($data['outgoing']); $x++) {
             $data['outgoing'][$x]->outgoing;
             $totOut = $totOut + $data['outgoing'][$x]->outgoing;
         }
 //Incoming
         $data['incoming'] = $incoming->get();
         $totIn = 0;
-        for($x = 0; $x < count($data['incoming']); $x++) {
+        for ($x = 0; $x < count($data['incoming']); $x++) {
             $data['incoming'][$x]->incoming;
-            $totIn = $totIn + $data['incoming'][$x]->incoming; 
+            $totIn = $totIn + $data['incoming'][$x]->incoming;
         }
 //Delivered
         $data['delivered'] = $delivered->get();
         $totDel = 0;
-        for ($x=0; $x < count($data['delivered']); $x++) { 
+        for ($x = 0; $x < count($data['delivered']); $x++) {
             $data['delivered'][$x]->delivered;
-            $totDel = $totDel + $data['delivered'][$x]->delivered; 
+            $totDel = $totDel + $data['delivered'][$x]->delivered;
         }
-//DeliveredPodS        
+//DeliveredPodS
         $data['deliveredPod'] = $deliveredPod->get();
         $totDelPod = 0;
-        for ($x=0; $x <count($data['deliveredPod']); $x++) { 
-            $totDelPod = $totDelPod +  $data['deliveredPod'][$x]->deliveredPod;
+        for ($x = 0; $x < count($data['deliveredPod']); $x++) {
+            $totDelPod = $totDelPod + $data['deliveredPod'][$x]->deliveredPod;
         }
-
         $data1 = $totbook;
         $data2 = $totOut;
         $data3 = $totIn;
         $data4 = $totDel;
         $data5 = $totDelPod;
-        
-        $data['total'] = intval($data1) + intval($data2) + intval($data3) + intval($data4) + intval($data5);        
+        $data['total'] = intval($data1) + intval($data2) + intval($data3) + intval($data4) + intval($data5);
         return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
-
     }
 
     public function rtoRep(Request $request)
     {
-         $sessionObject = session()->get('session_token');
-         $admin = Admin::where('id', $sessionObject->admin_id)->first();
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->first();
 
-         $from_date = $this->request->from_date;
-         $to_date = $this->request->to_date;
-         $branch_name = $this->request->branch_name;
-         $cust_type = $this->request->cust_type;
-         $customer = $this->request->customer;
-         $groupby = $this->request->groupby;
-
-
-        if(isset($cust_type) && $cust_type == "BE"){
-                $rtoRep = GmsDmfDtls::leftjoin('gms_emp','gms_dmf_dtls.dmf_fr_code','=','gms_emp.emp_code')->leftjoin('gms_rto_dtls','gms_dmf_dtls.dmf_cnno','=','gms_rto_dtls.rto_cnno')->select(
+        $from_date = $this->request->from_date;
+        $to_date = $this->request->to_date;
+        $branch_name = $this->request->branch_name;
+        $cust_type = $this->request->cust_type;
+        $customer = $this->request->customer;
+        $groupby = $this->request->groupby;
+        if (isset($cust_type) && $cust_type == "BE") {
+            $rtoRep = GmsDmfDtls::leftjoin('gms_emp', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_emp.emp_code')->leftjoin('gms_rto_dtls', 'gms_dmf_dtls.dmf_cnno', '=', 'gms_rto_dtls.rto_cnno')->select(
                 'gms_dmf_dtls.dmf_type AS cust_type',
                 'gms_dmf_dtls.dmf_cnno AS cnno',
                 'gms_emp.emp_code AS cust_code',
                 DB::raw('CONCAT(gms_emp.emp_code,"-",gms_emp.emp_name) AS cust_name'),
                 'gms_dmf_dtls.dmf_mfdate AS date',
                 DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS total_cnno'),
-
             );
-                $rtoRep1 = GmsDmfDtls::leftjoin('gms_emp','gms_dmf_dtls.dmf_fr_code','=','gms_emp.emp_code')->leftjoin('gms_rto_dtls','gms_dmf_dtls.dmf_cnno','=','gms_rto_dtls.rto_cnno')->select(
-                    'gms_emp.emp_code AS cust_code',
-                    DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS tot'),
-
-                );
-        }else{
-
-            $rtoRep = GmsDmfDtls::leftjoin('gms_customer','gms_dmf_dtls.dmf_fr_code','=','gms_customer.cust_code')->leftjoin('gms_rto_dtls','gms_dmf_dtls.dmf_cnno','=','gms_rto_dtls.rto_cnno')->select(
-
+            $rtoRep1 = GmsDmfDtls::leftjoin('gms_emp', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_emp.emp_code')->leftjoin('gms_rto_dtls', 'gms_dmf_dtls.dmf_cnno', '=', 'gms_rto_dtls.rto_cnno')->select(
+                'gms_emp.emp_code AS cust_code',
+                DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS tot'),
+            );
+        } else {
+            $rtoRep = GmsDmfDtls::leftjoin('gms_customer', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer.cust_code')->leftjoin('gms_rto_dtls', 'gms_dmf_dtls.dmf_cnno', '=', 'gms_rto_dtls.rto_cnno')->select(
                 'gms_dmf_dtls.dmf_type AS cust_type',
                 'gms_dmf_dtls.dmf_cnno AS cnno',
                 'gms_customer.cust_code AS cust_code',
                 DB::raw('CONCAT(gms_customer.cust_code,"-",gms_customer.cust_la_ent) AS cust_name'),
                 'gms_dmf_dtls.dmf_mfdate AS date',
                 DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS total_cnno'),
-
             );
-            $rtoRep1 = GmsDmfDtls::leftjoin('gms_customer','gms_dmf_dtls.dmf_fr_code','=','gms_customer.cust_code')->leftjoin('gms_rto_dtls','gms_dmf_dtls.dmf_cnno','=','gms_rto_dtls.rto_cnno')->select(
-                    'gms_customer.cust_code AS cust_code',
-                    DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS tot'),
-
-                );
+            $rtoRep1 = GmsDmfDtls::leftjoin('gms_customer', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer.cust_code')->leftjoin('gms_rto_dtls', 'gms_dmf_dtls.dmf_cnno', '=', 'gms_rto_dtls.rto_cnno')->select(
+                'gms_customer.cust_code AS cust_code',
+                DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) AS tot'),
+            );
         }
-
         if ($request->has('from_date') && $request->has('to_date')) {
             $rtoRep->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
             $rtoRep1->whereBetween('gms_dmf_dtls.dmf_mfdate', [$from_date, $to_date]);
@@ -1736,7 +1659,7 @@ class ReportController extends Controller
         if ($request->has('customer')) {
             $rtoRep->where('gms_dmf_dtls.dmf_fr_code', $customer);
             $rtoRep1->where('gms_dmf_dtls.dmf_fr_code', $customer);
-        }else{
+        } else {
             $rtoRep->where('gms_dmf_dtls.dmf_mfdate', $customer);
             $rtoRep1->where('gms_dmf_dtls.dmf_mfdate', $customer);
         }
@@ -1744,7 +1667,6 @@ class ReportController extends Controller
         $rtoRep1->groupBy('gms_dmf_dtls.dmf_fr_code');
         $data['details'] = $rtoRep->get();
         $data['tot'] = $rtoRep1->get();
-
         /*foreach ($data['details'] as $value) {
             # code...
             foreach ($data['tot'] as $value2) {
@@ -1756,13 +1678,12 @@ class ReportController extends Controller
 
         }*/
         $data['header'] = array(
-            'username' =>$admin->username,
-            'reportng_date' =>Carbon::now()->toDateTimeString(),
-            'from_date'=>$from_date,
-            'to_date' =>$to_date,
+            'username' => $admin->username,
+            'reportng_date' => Carbon::now()->toDateTimeString(),
+            'from_date' => $from_date,
+            'to_date' => $to_date,
 
         );
-
         return $this->successResponse(self::CODE_OK, "Successfully!!", $data);
     }
 }

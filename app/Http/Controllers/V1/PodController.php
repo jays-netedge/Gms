@@ -102,37 +102,22 @@ class PodController extends Controller
 
     public function podSearch(Request $request)
     {
-
         $from_date = $this->request->from_date;
         $to_date = $this->request->to_date;
         $book_cnno = $this->request->book_cnno;
-
         $destination_path = public_path('/pod');
-
         $query = GmsBookingDtls::select(
             'book_cnno', 'book_pod_scan_emp',
             DB::raw("CONCAT('$destination_path','/',book_pod_scan) As image"),
             DB::raw('book_pod_scan_date AS date')
         );
-
         if ($request->has('from_date') && ($request->has('to_date'))) {
             $query->whereBetween('book_pod_scan_date', [$from_date, $to_date]);
-            $query2[] = $query->get()->toArray();
-            return $this->successResponse(self::CODE_OK, $query2);
         }
-
-        $cnno = GmsBookingDtls::select(
-            'book_cnno', 'book_pod_scan_emp',
-            DB::raw("CONCAT('$destination_path','/',book_pod_scan) As image"),
-            DB::raw('book_pod_scan_date AS date')
-        );
-
         if ($request->has('book_cnno')) {
-            $cnno->where('book_cnno', $book_cnno);
+            $query->where('book_cnno', $book_cnno);
         }
-        $cnno2[] = $cnno->first()->toArray();
-        return $this->successResponse(self::CODE_OK, $cnno2);
-
+        return $query->paginate($request->per_page);
     }
 
     public function bulkUpdate(Request $request)

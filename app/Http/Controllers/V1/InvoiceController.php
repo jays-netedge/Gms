@@ -19,6 +19,10 @@ use App\Models\GmsColoaderDtls;
 use App\Http\Traits\InvoiceTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use App\Exports\SalesRegisterExport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Admin;
+use Carbon\Carbon;
 
 class InvoiceController extends Controller
 {
@@ -672,7 +676,11 @@ class InvoiceController extends Controller
 
     public function viewAllInvoice(Request $request)
     {
-        $viewAllInvoice = GmsInvoice::where('is_deleted', 0)->select('id', 'invoice_no', 'invoice_date', 'cust_type', 'customer_code', 'fr_fuel_amount', 'fr_sub_total', 'fr_grand_total');
+        $viewAllInvoice = GmsInvoice::where('is_deleted', 0)->
+        select('id', 'invoice_no', 'invoice_date', 'cust_type', 'customer_code',
+               'fr_less_billing_discount','fr_sub_total','fr_fuel_amount', 
+               'fr_total','fr_sub_total', 'fr_service_tax_amount',
+               'fr_grand_total','fr_voucher_amount');
         if ($request->has('month')) {
             $month = $request->month;
             $viewAllInvoice->where('month', $month);
@@ -969,18 +977,20 @@ class InvoiceController extends Controller
         $user_type = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
 
         $input = $this->request->all();
-        $getRtoUpdate = GmsRtoDtls::where('rto_cnno', '=', $request->rto_cnno)->where('is_deleted', 0)->first();
-        if ($getRtoUpdate) {
-            $editRtoUpdate = GmsRtoDtls::find($getRtoUpdate->id);
-            $editRtoUpdate->rto_reason = $request->rto_reason;
-            $editRtoUpdate->rto_remarks = $request->rto_remarks;
-            $editRtoUpdate->userid = $sessionObject->admin_id;
-            $editRtoUpdate->rto_branch = $user_type->office_code;
-            $editRtoUpdate->update($input);
-            return $this->successResponse(self::CODE_OK, "Rto Details Update Successfully!!", $editRtoUpdate);
-        } else {
-            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Cnno Not Found");
-        }
+    
+        $input['rto_branch'] = $input['rto_branch'];
+        $input['rto_mfno'] = $input['rto_mfno'];
+        $input['rto_mfdate'] = Carbon::now()->toDateString();
+        $input['rto_mftime'] = Carbon::now()->toTimeString();
+        $input['rto_cnno'] = $input['rto_cnno'];
+        $input['rto_reason'] = $input['rto_reason'];
+        $input['rto_remarks'] = $input['rto_remarks'];
+        $input['status'] = "N";
+        $input['user_id'] = $sessionObject->admin_id;
+        $addRto = new GmsRtoDtls($input);
+        $addRto->save();
+            return $this->successResponse(self::CODE_OK, "Add Rto Successfully!!", $addRto);
+      
     }
 
     public function viewSearchInvoiceSf(Request $request)
@@ -1078,5 +1088,43 @@ class InvoiceController extends Controller
         } else {
             return 'Check Cnno No';
         }
+    }
+
+    public function getRtoCnnoDetails()
+    {
+        $input = $this->request->all();
+        $getCnnoDetails = GmsPmfDtls::select('id', 'pmf_type','pmf_origin', 'pmf_cnno', 'pmf_date', 'pmf_time', 'pmf_wt', 'pmf_pcs')->where('pmf_type','IPMF')->where('pmf_cnno', $input['pmf_cnno'])->first();
+        return $getCnnoDetails;
+    }
+
+    public function RtoChangeStatus(Request $request)
+    {
+        $sessionObject = session()->get('session_token');
+        $user_type = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();
+
+        $validator = Validator::make($this->request->all(), [
+            'rto_id' => 'required|exists:gms_rto_dtls,id',
+        ]);
+        if ($validator->fails()) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        }
+
+        $input = $this->request->all();
+        $getRtoUpdate = GmsRtoDtls::where('id', '=', $request->rto_id)->where('is_deleted', 0)->first();
+        if ($getRtoUpdate) {
+            $editRtoUpdate = GmsRtoDtls::find($getRtoUpdate->id);
+            $editRtoUpdate->status = $request->status;
+            $editRtoUpdate->userid = $sessionObject->admin_id;
+            $editRtoUpdate->rto_branch = $user_type->office_code;
+            $editRtoUpdate->update($input);
+            return $this->successResponse(self::CODE_OK, "Status Changed Successfully!!", $editRtoUpdate);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "ID Not Found");
+        }
+    }
+
+    public function exportSalesRegister(Request $request)
+    {
+        return Excel::download(new SalesRegisterExport($request), 'SalesRegister.xlsx');
     }
 }

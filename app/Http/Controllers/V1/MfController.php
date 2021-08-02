@@ -16,6 +16,7 @@ use App\Models\GmsDmfDtls;
 use App\Models\GmsMfDtls;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\GmsRtoDtls;
 use Illuminate\Support\Collection;
 
 
@@ -36,9 +37,9 @@ class MfController extends Controller
     public function allDeliveryMf(Request $request)
     {
         $input = $this->request->all();
-        $query = GmsDmfDtls::join('gms_customer', 'gms_dmf_dtls.dmf_type', '=', 'gms_customer.cust_type')
-            ->select(DB::raw('concat(gms_dmf_dtls.dmf_type," (",gms_dmf_dtls.dmf_emp,") ",gms_customer.cust_la_ent)As customer_type'),
-
+        $query = GmsDmfDtls::leftjoin('gms_customer', 'gms_dmf_dtls.dmf_fr_code', '=', 'gms_customer.cust_code')
+            ->select(
+                DB::raw('concat(gms_dmf_dtls.dmf_type,"(",gms_customer.cust_la_ent,")") As customer_type'),
                 'gms_dmf_dtls.dmf_fr_code as fr_code',
                 'gms_dmf_dtls.dmf_branch as branch',
                 'gms_dmf_dtls.dmf_emp as emp',
@@ -46,18 +47,26 @@ class MfController extends Controller
                 'gms_dmf_dtls.dmf_cnno_type as dmf_type',
                 DB::raw('DATE_FORMAT(gms_dmf_dtls.dmf_mfdate, "%d %b, %Y") as date'),
                 DB::raw('DATE_FORMAT(gms_dmf_dtls.dmf_mftime, "%l:%i %p") as time'),
-                DB::raw('SUM(gms_dmf_dtls.dmf_wt) as total_weight'),
+                DB::raw('ROUND(SUM(gms_dmf_dtls.dmf_wt),4) as total_weight'),
                 DB::raw('COUNT(gms_dmf_dtls.dmf_cnno) as total_cnno'),
                 DB::raw('SUM(gms_dmf_dtls.dmf_pcs) as total_pcs'),
-                DB::raw('SUM(gms_dmf_dtls.dmf_delv_amt) as total_amount'),
-            );
+                DB::raw('SUM(gms_dmf_dtls.dmf_delv_amt) as total_amount'));
 
         $query->where('gms_dmf_dtls.is_deleted', 0);
         $query->groupBy('gms_dmf_dtls.dmf_mfno');
         if ($request->isMethod('get')) {
             return $query->paginate($request->per_page);
         } else {
-            $query1 = GmsDmfDtls::select('dmf_cnno as cnno', 'dmf_ref_no as ref_no', 'dmf_wt as weight', 'dmf_pcs as pcs', 'dmf_pin as pincode', 'dmf_consgn_add as consignee_name_address', 'dmf_remarks as remark', DB::raw('CONCAT(gms_dmf_dtls.dl_name , \' \',  gms_dmf_dtls.dl_phone) AS received_name_and_phone_no'), 'dl_signature as signature', 'dmf_cn_status');
+            $query1 = GmsDmfDtls::select('dmf_cnno as cnno', 
+                    'dmf_ref_no as ref_no', 
+                    'dmf_wt as weight', 
+                    'dmf_pcs as pcs', 
+                    'dmf_pin as pincode', 
+                    'dmf_consgn_add as consignee_name_address', 
+                    'dmf_remarks as remark', 
+                    DB::raw('CONCAT(gms_dmf_dtls.dl_name , \' \',  gms_dmf_dtls.dl_phone) AS received_name_and_phone_no'), 
+                    'dl_signature as signature', 
+                    'dmf_cn_status');
             $query1->where('is_deleted', 0);
             $query1->where('dmf_mfno', $input['dmf_mfno']);
             $cnnoData = $query1->orderBy('created_at', 'desc')->get();
@@ -89,13 +98,21 @@ class MfController extends Controller
             DB::raw('SUM(gms_dmf_dtls.dmf_wt) as weight'),
             DB::raw('SUM(gms_dmf_dtls.dmf_pcs) as pcs'),
         );
-
         $query->where('gms_dmf_dtls.is_deleted', 0);
         $query->groupBy('gms_dmf_dtls.dmf_mfno');
         if ($request->isMethod('get')) {
             return $query->paginate($request->per_page);
         } else {
-            $query1 = GmsDmfDtls::select('dmf_cnno as cnno', 'dmf_ref_no as ref_no', 'dmf_wt as weight', 'dmf_pcs as pcs', 'dmf_pin as pincode', 'dmf_consgn_add as consignee_name_address', 'dmf_remarks as remark', DB::raw('CONCAT(gms_dmf_dtls.dl_name , \' \',  gms_dmf_dtls.dl_phone) AS received_name_and_phone_no'), 'dl_signature as signature', 'dmf_cn_status');
+            $query1 = GmsDmfDtls::select('dmf_cnno as cnno', 
+                    'dmf_ref_no as ref_no', 
+                    'dmf_wt as weight', 
+                    'dmf_pcs as pcs', 
+                    'dmf_pin as pincode', 
+                    'dmf_consgn_add as consignee_name_address',
+                    'dmf_remarks as remark', 
+                    DB::raw('CONCAT(gms_dmf_dtls.dl_name , \' \',  gms_dmf_dtls.dl_phone) AS received_name_and_phone_no'), 
+                    'dl_signature as signature', 
+                    'dmf_cn_status');
             $query1->where('is_deleted', 0);
             $query1->where('dmf_mfno', $input['dmf_mfno']);
             $cnnoData = $query1->get();
@@ -112,7 +129,6 @@ class MfController extends Controller
         $response['actual_packet_wight'] = GmsDmfDtls::select(DB::raw('sum(dmf_wt) as totalWt'), DB::raw('count(dmf_cnno) as total_cnno'))->where('is_deleted', 0)->where('dmf_mfno', $input['dmf_no'])->first();
         return $response;
     }
-
 
     public function addDeliveryMf()
     {
@@ -195,7 +211,6 @@ class MfController extends Controller
         $getDmfData->dmf_ndel_reason = isset($input['dmf_ndel_reason']) ? $input['dmf_ndel_reason'] : "";
         $getDmfData->update($input);
         return $this->successResponse(self::CODE_OK, "Update Successfully!!", $getDmfData);
-
     }
 
     public function addDmfRemarkUpdate()
@@ -205,10 +220,9 @@ class MfController extends Controller
         $getDmfData->dmf_remarks = isset($input['dmf_remarks']) ? $input['dmf_remarks'] : "";
         $getDmfData->update($input);
         return $this->successResponse(self::CODE_OK, "Update Successfully!!", $getDmfData);
-
     }
 
-    public function updateIpmf(Request $request)
+    /*public function updateIpmf(Request $request)
     {
         $input = $this->request->all();
         $getPmfData = GmsPmfDtls::where('pmf_cnno', $input['pmf_cnno'])->where('is_deleted', 0)->first();
@@ -232,8 +246,56 @@ class MfController extends Controller
         }
         $getPmfData->update($input);
         return $this->successResponse(self::CODE_OK, "Update Successfully!!", $getPmfData);
-    }
+    }*/
+    public function updateIpmf(Request $request)
+    {
+        $sessionObject = session()->get('session_token');
+        $admin = Admin::where('id', $sessionObject->admin_id)->first();
+        // $validator = Validator::make($request->all(), [
+        //     //'max_no' => 'required',
+        //     'cnno_type' => 'required',
+        //     'pmf_wt' => 'required',
+        //     'pmf_vol_wt' => 'required',
+        //     'pmf_actual_wt' => 'required',
 
+        // ]);
+        // if ($validator->fails()) {
+        //     return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, $validator->errors());
+        // }
+        $format1 = 'Y-m-d';
+        $format2 = 'H:i:s';
+        $input = $this->request->all();
+        $datetime = Carbon::now()->toDateTimeString();
+        $date = Carbon::parse($datetime)->format($format1);
+        $time = Carbon::parse($datetime)->format($format2);
+
+        $getGmsBookingDtls = GmsBookingDtls::where('book_cnno', $input['pmf_cnno'])->where('is_deleted', 0)->first();
+        if (!empty($getGmsBookingDtls)) {
+            $getPmfData = GmsPmfDtls::where('pmf_cnno', $getGmsBookingDtls->book_cnno)->where('is_deleted', 0)->first();
+            $input['pmf_no'] = $getGmsBookingDtls->book_mfno;
+            // $input['max_no'] = $getGmsBookingDtls->book_mfno;
+            $input['pmf_type'] = 'IPMF';
+            $input['pmf_date'] = $date;
+            $input['pmf_time'] = $time;
+            $input['pmf_emp_code'] = $admin->username;
+            $input['pmf_origin'] = $getGmsBookingDtls->book_org;
+            $input['pmf_dest'] = $getGmsBookingDtls->book_dest;
+            $input['pmf_mode'] = $getGmsBookingDtls->book_mode;
+            $input['pmf_doc'] = $getGmsBookingDtls->book_doc;
+            $input['pmf_amt'] = $getGmsBookingDtls->book_total_amount;
+            $input['pmf_cnno'] = $getGmsBookingDtls->book_cnno;
+            $input['pmf_cnno_type'] = $input['cnno_type'];
+            $input['pmf_wt'] =  isset($input['pmf_wt']) ? $input['pmf_wt']: "";
+            $input['pmf_vol_wt'] = isset($input['pmf_vol_wt']) ? $input['pmf_vol_wt']: "";
+            $input['pmf_actual_wt'] = isset($input['pmf_actual_wt']) ? $input['pmf_actual_wt']: "";
+            $input['pmf_remarks'] = isset($input['pmf_remarks']) ? $input['pmf_remarks']:"";
+            $getPmfData->update($input);
+
+            return $this->successResponse(self::CODE_OK, "Added Successfully!!", $getPmfData);
+        } else {
+            return "Check Your Cnno No";
+        }
+    }
 
     public function nonDeliveryDropDown()
     {
@@ -253,8 +315,9 @@ class MfController extends Controller
         $getMfDetailsNotReceived = GmsPmfDtls::join('gms_office', 'gms_pmf_dtls.pmf_origin', '=', 'gms_office.office_code')->select(
             'gms_pmf_dtls.pmf_date',
             'gms_pmf_dtls.pmf_no as opmf',
-            // DB::raw('concat(gms_pmf_dtls.pmf_origin ,"(",gms_office.office_name,")")As from'),
-            DB::raw('concat(gms_pmf_dtls.pmf_origin,"(",gms_office.office_name,")")As agent'),
+            //DB::raw('concat(gms_pmf_dtls.pmf_origin ,"(",gms_office.office_name,")")As from'),
+            //DB::raw('concat(gms_pmf_dtls.pmf_origin,"(",gms_office.office_name,")")As agent'),
+            DB::raw('concat(gms_pmf_dtls.pmf_origin,"-",gms_office.office_name )As agent'),
             // 'gms_pmf_dtls.pmf_origin AS from',
             DB::raw('count(pmf_cnno) As total_cnno'),
             DB::raw('SUM(gms_pmf_dtls.pmf_wt) as total_weight')
@@ -266,7 +329,8 @@ class MfController extends Controller
             'gms_pmf_dtls.pmf_no as opmf',
             // DB::raw('concat("[",gms_pmf_dtls.pmf_origin,",",gms_office.office_name,"]")As from'),
             //DB::raw('concat(gms_pmf_dtls.pmf_origin,"(",gms_office.office_name,")") AS from'),
-            DB::raw('concat(gms_pmf_dtls.pmf_origin,"(",gms_office.office_name,")")As agent'),
+            //DB::raw('concat(gms_pmf_dtls.pmf_origin,"(",gms_office.office_name,")")As agent'),
+            DB::raw('concat(gms_pmf_dtls.pmf_origin,"-",gms_office.office_name )As agent'),
             // 'gms_pmf_dtls.pmf_origin AS from',
             DB::raw('count(pmf_cnno) As total_cnno'),
             DB::raw('SUM(gms_pmf_dtls.pmf_wt) as total_weight')
@@ -279,8 +343,10 @@ class MfController extends Controller
             $getMfDetailsReceived->whereBetween('gms_pmf_dtls.pmf_date', [$from_date, $to_date]);
         }
         if ($request->has('mf_ro')) {
-            $getMfDetailsNotReceived->Where('gms_pmf_dtls.mf_ro', $mf_ro);
-            $getMfDetailsReceived->Where('gms_pmf_dtls.mf_ro', $mf_ro);
+            /*$getMfDetailsNotReceived->Where('gms_pmf_dtls.mf_ro', $mf_ro);
+            $getMfDetailsReceived->Where('gms_pmf_dtls.mf_ro', $mf_ro);*/
+            $getMfDetailsNotReceived->Where('gms_pmf_dtls.pmf_ro', $mf_ro);
+            $getMfDetailsReceived->Where('gms_pmf_dtls.pmf_ro', $mf_ro);
         }
         if ($request->has('opmf_no')) {
             $getMfDetailsNotReceived->Where('gms_pmf_dtls.pmf_no', $opmf_no);
@@ -330,9 +396,13 @@ class MfController extends Controller
             DB::raw('count(gms_pmf_dtls.pmf_wt) as packet_wt'), 'gms_pmf_dtls.pmf_type as manifest_type',
             DB::raw('concat(gms_city.city_name,"(",gms_city.city_code,")")As city')
         )->where('gms_pmf_dtls.pmf_no', $input['pmf_no'])->where('gms_pmf_dtls.pmf_type', 'IPMF')->first();
+//Pending Data Query
         $response['pending'] = GmsPmfDtls::whereColumn('pmf_pcs', '<>', 'pmf_received_pcs')->where('pmf_no', $input['pmf_no'])->select('pmf_cnno as cnno', 'pmf_cnno_type as cnno_type', 'pmf_wt as weight', 'pmf_vol_wt as vol_wt', 'pmf_pcs as pcs', 'pmf_pin as pincode', 'pmf_doc as doc', 'pmf_status', 'pmf_remarks as remark')->where('gms_pmf_dtls.is_deleted', 0)->where('gms_pmf_dtls.pmf_type', 'IPMF')->get();
+//Complete Data Query
         $response['Complete'] = GmsPmfDtls::whereColumn('pmf_pcs', '=', 'pmf_received_pcs')->where('pmf_no', $input['pmf_no'])->select('pmf_cnno as cnno', 'pmf_cnno_type as cnno_type', 'pmf_wt as weight', 'pmf_vol_wt as vol_wt', 'pmf_pcs as pcs', 'pmf_pin as pincode', 'pmf_remarks as remark', 'pmf_doc as doc', 'pmf_status', 'pmf_status as status')->where('gms_pmf_dtls.is_deleted', 0)->where('gms_pmf_dtls.pmf_type', 'IPMF')->get();
+//Total Data Query
         $response['total'] = GmsPmfDtls::select(DB::raw('SUM(pmf_wt) as total_weight'), DB::raw('COUNT(pmf_pcs) as total_cnno'), DB::raw('SUM(pmf_pcs) as total_pcs'), DB::raw('SUM(pmf_vol_wt) as total_vol_amount'))->where('pmf_no', $input['pmf_no'])->where('is_deleted', 0)->where('gms_pmf_dtls.pmf_type', 'IPMF')->first();
+//Actual Packet Weight Data Query
         $response['actua_packet_wight'] = GmsPmfDtls::select(DB::raw('sum(pmf_actual_wt) as totalActualwt'))->where('pmf_no', $input['pmf_no'])->where('gms_pmf_dtls.is_deleted', 0)->where('gms_pmf_dtls.pmf_type', 'IPMF')->first();
         return $response;
 
@@ -345,20 +415,21 @@ class MfController extends Controller
         $mf_ro = $this->request->mf_ro;
         $mf_origin = $this->request->mf_origin;
         $mf_mode = $this->request->mf_mode;
-        $mf_no = $this->request->opmf_no;
+        //$mf_no = $this->request->opmf_no;
+        $mf_no = $this->request->mf_no;
 
         $advanceSearchImf = GmsMfDtls::select(
             'mf_no as mf',
             'mf_mode as mode',
             'mf_time as time',
             DB::raw('count(mf_pmfno)As totalPacket'),
-            DB::raw('concat("[",mf_origin,",",mf_dest,"]")As ManifestType'),
+            //DB::raw('concat("[",mf_origin,",",mf_dest,"]")As ManifestType'),
+            DB::raw('concat(mf_type,"[",mf_origin,",",mf_dest,"]")As ManifestType'),
             DB::raw('DATE_FORMAT(mf_date,"%d %b, %Y") as date'),
             DB::raw('SUM(mf_wt) as total_weight'),
             DB::raw('SUM(mf_vol_wt) as vol_weight'),
             DB::raw('SUM(mf_pcs)As pcs'),
         );
-        $advanceSearchImf->groupBy('mf_no');
 
         if ($request->has('from_date') && $request->has('to_date')) {
             $advanceSearchImf->whereBetween('mf_date', [$from_date, $to_date]);
@@ -372,10 +443,14 @@ class MfController extends Controller
         if ($request->has('mf_mode')) {
             $advanceSearchImf->where('mf_mode', $mf_mode);
         }
-        if ($request->has('opmf_no')) {
+        if ($request->has('mf_no')) {
             $advanceSearchImf->where('mf_no', $mf_no);
         }
-        $advanceSearchImf->where('gms_pmf_dtls.is_deleted', 0);
+
+        //$advanceSearchImf->where('gms_pmf_dtls.is_deleted', 0);
+        $advanceSearchImf->where('gms_mf_dtls.is_deleted', 0);
+        $advanceSearchImf->groupBy('mf_no');
+
         return $advanceSearchImf->paginate($request->per_page);
     }
 
@@ -411,12 +486,12 @@ class MfController extends Controller
     public function updateOpmf(Request $request)
     {
         $input = $this->request->all();
-        $getPmfData = GmsPmfDtls::where('pmf_no', $input['pmf_no'])->where('is_deleted', 0)->first();
+        $getPmfData = GmsPmfDtls::where('pmf_cnno', $input['pmf_cnno'])->where('is_deleted', 0)->first();
         if ($request->has('pmf_actual_wt')) {
-            $getPmfData->pmf_actual_wt = $input['pmf_actual_wt'];
+            $getPmfData->pmf_actual_wt = isset($input['pmf_actual_wt']) ? $input['pmf_actual_wt']:"" ;
         }
         if ($request->has('pmf_remarks')) {
-            $getPmfData->pmf_remarks = $input['pmf_remarks'];
+            $getPmfData->pmf_remarks = isset($input['pmf_remarks']) ? $input['pmf_actual_wt']:"" ;
         }
         $getPmfData->update($input);
         return $this->successResponse(self::CODE_OK, "Update Successfully!!", $getPmfData);
@@ -459,6 +534,13 @@ class MfController extends Controller
         $input['pmf_no'] = $input['pmf_no'];
         $input['pmf_type'] = "OPMF";
         $input['pmf_actual_wt'] = isset($input['pmf_actual_wt']) ? $input['pmf_actual_wt'] : "";
+        $input['pmf_entry_date'] = Carbon::now()->toDateTimeString();
+        $input['pmf_status'] = isset($input['pmf_status']) ? $input['pmf_status']: "";
+        $input['pmf_misroute'] = 0;
+        $input['pmf_cnno_type'] = "WTD";
+        $input['pmf_ro'] = isset($input['pmf_ro']) ? $input['pmf_ro']: "";
+        $input['pmf_dest_ro'] = isset($input['pmf_dest_ro']) ? $input['pmf_dest_ro']: "";
+        $input['pmf_recevied_ro'] = isset($input['pmf_recevied_ro']) ? $input['pmf_recevied_ro']: "";
         $input['userid'] = $sessionObject->admin_id;
         $addGmsPmfDtls = new GmsPmfDtls($input);
         $addGmsPmfDtls->save();
@@ -490,6 +572,7 @@ class MfController extends Controller
         // $addGmsMfDtls->userid = $addGmsPmfDtls->userid;
         // $addGmsMfDtls->save();
         // return $this->successResponse(self::CODE_OK, "OutGoung Added Successfully!!", $addGmsPmfDtls);
+        return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addGmsPmfDtls);
     }
 
     public function addOutGoingMasterMf(Request $request)
@@ -551,11 +634,24 @@ class MfController extends Controller
         }
     }
 
-    public function getCnnoDetails()
+    /*public function getCnnoDetails()
     {
         $input = $this->request->all();
         $getCnnoDetails = GmsBookingDtls::select('book_mfno', 'book_mfdate', 'book_mftime', 'book_cnno', 'book_weight', 'book_vol_weight', 'book_pcs', 'book_pin', 'book_dest', 'book_doc', 'book_topay', 'book_cod', 'book_remarks', 'book_mode')->where('book_cnno', $input['book_cnno'])->first();
         return $getCnnoDetails;
+    }*/
+
+    public function getCnnoDetails()
+    {
+        $input = $this->request->all();
+        $getCnnoDetails = GmsBookingDtls::select('book_br_code','book_mfno', 'book_mfdate', 'book_mftime', 'book_cnno', 'book_weight', 'book_vol_weight', 'book_pcs', 'book_pin', 'book_dest', 'book_doc', 'book_topay', 'book_cod', 'book_remarks', 'book_mode')->where('book_cnno', $input['book_cnno'])->first();
+
+
+        if (!$getCnnoDetails) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, self::INVALID_REQUEST, 'No Data Found');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $getCnnoDetails);
+        }
     }
 
     public function generateMfNo()
@@ -570,20 +666,26 @@ class MfController extends Controller
             } else {
                 return $last_In_mfno;
             }
+        }else{
+            return "Getting Error";
         }
     }
 
-    public function generateOPMfNo()
+    public function generateOPMfNo(Request $request)
     {
         if (session()->has('session_token')) {
             $sessionObject = session()->get('session_token');
             /*$user_check = Admin::where('id', $sessionObject->admin_id)->where('is_deleted', 0)->first();*/
-            $last_In_mfno = GmsPmfDtls::select('id', 'pmf_no')->where('pmf_origin', $this->request->office_code)->orderBy('created_at', 'desc')->first();
+            $last_In_mfno = GmsPmfDtls::where('pmf_origin', $request->office_code)->select('id', 'pmf_no')->orderBy('id', 'DESC')->first();
+
+         
             if (empty($last_In_mfno)) {
                 return 0;
             } else {
                 return $last_In_mfno;
             }
+        }else{
+            return "Getting Error";
         }
     }
 
@@ -598,6 +700,8 @@ class MfController extends Controller
             } else {
                 return $last_In_mfno;
             }
+        }else{
+            return "Getting Error";
         }
     }
 
@@ -668,6 +772,11 @@ class MfController extends Controller
         $input['userid'] = $sessionObject->admin_id;
         $addGmsPmfDtls = new GmsPmfDtls($input);
         $addGmsPmfDtls->save();
+        if ($addGmsPmfDtls) {
+            return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addGmsPmfDtls);
+        } else {
+            return $this->errorResponse(self::CODE_INTERNAL_SERVER_ERROR, self::INTERNAL_SERVER_ERROR, "Something went wrong");
+        }
 
     }
 
@@ -833,9 +942,7 @@ class MfController extends Controller
         } else {
             return "No data Found";
         }
-
     }
-
 
     public function opmfPending(Request $request)
     {
@@ -855,6 +962,8 @@ class MfController extends Controller
             DB::raw('sum(pmf_pcs)As Pcs'),
             DB::raw('sum(pmf_amt)As Amt'),
         );
+        /*$opmfPending->where('pmf_ro',$admin->office_code);*/
+        $opmfPending->where('is_deleted', 0);
         $opmfPending->groupBy('pmf_no');
         $opmfPending->having(DB::raw("sum(pmf_pcs)-sum(pmf_received_pcs)"), "!=", 0);
         if ($request->isMethod('get')) {
@@ -893,6 +1002,8 @@ class MfController extends Controller
             DB::raw('sum(pmf_pcs)As pcs'),
             DB::raw('sum(pmf_amt)As amount'),
         );
+        $query->where('gms_pmf_dtls.is_deleted', 0);
+        /*$query->where('pmf_ro',$admin->office_code);*/
         $query->groupBy('gms_pmf_dtls.pmf_no');
         $query->having(DB::raw("sum(pmf_pcs)-sum(pmf_received_pcs)"), "=", 0);
 
@@ -931,8 +1042,9 @@ class MfController extends Controller
             DB::raw('sum(pmf_vol_wt)As VolWt'),
             DB::raw('sum(pmf_pcs)As Pcs'),
             DB::raw('sum(pmf_amt)As Amt'),
-
         );
+        /*$opmfMisroute->where('pmf_ro',$admin->office_code);*/
+        $opmfMisroute->where('is_deleted', 0);
         $opmfMisroute->groupBy('pmf_no');
         $opmfMisroute->having(DB::raw("sum(pmf_misroute)"), "!=", 0);
         if ($request->isMethod('get')) {
@@ -949,7 +1061,6 @@ class MfController extends Controller
             $response['Misroute'] = GmsPmfDtls::where('pmf_misroute', '!=', 0)->where('pmf_no', $input['pmf_no'])->select('pmf_cnno as cnno', 'pmf_cnno_type as cnno_type', 'pmf_wt as weight', 'pmf_pcs as pcs', 'pmf_pin as pincode', 'pmf_city as city', 'pmf_doc', 'pmf_remarks as remark', 'pmf_received_by as incomed_by', 'pmf_status as status', 'created_at as created_date', 'pmf_received_date as received_date')->get();
             $response['total'] = GmsPmfDtls::select(DB::raw('SUM(pmf_wt) as total_weight'), DB::raw('COUNT(pmf_pcs) as total_cnno'), DB::raw('SUM(pmf_pcs) as total_pcs'), DB::raw('SUM(pmf_vol_wt) as total_vol_amount'))->where('pmf_no', $input['pmf_no'])->where('is_deleted', 0)->first();
             return $response;
-
         }
     }
 
@@ -972,7 +1083,6 @@ class MfController extends Controller
             DB::raw('SUM(gms_pmf_dtls.pmf_amt) As Amt'),
             DB::raw('concat("[",gms_pmf_dtls.pmf_origin,",",gms_pmf_dtls.pmf_dest,"]")As ManifestType'),
             DB::raw('DATE_FORMAT(gms_pmf_dtls.updated_at,"%d %b, %Y") as last_update_date'),
-
         );
         $query->where('gms_pmf_dtls.pmf_type', 'OPMF');
         $query->where('gms_pmf_dtls.is_deleted', 0);
@@ -1016,14 +1126,19 @@ class MfController extends Controller
             'pmf_time as time',
             'pmf_mode as mode_type',
             DB::raw('CONCAT("[",pmf_origin,",",pmf_dest,"]") As ManifestType'),
-            DB::raw('concat(SUM(pmf_pcs) - sum(pmf_received_pcs),"/",SUM(pmf_pcs)) As Total_cnno'),
+            DB::raw('concat(SUM(pmf_received_pcs),"/",SUM(pmf_pcs)) As Total_cnno'),
+            DB::raw('concat(SUM(pmf_pcs) - SUM(pmf_received_pcs)) As peding'),
             DB::raw('DATE_FORMAT(pmf_date,"%d %b, %Y") as date'),
             DB::raw('SUM(pmf_wt) as total_weight'),
             DB::raw('SUM(pmf_vol_wt) as vol_weight'),
             DB::raw('SUM(pmf_pcs)As pcs'),
             DB::raw('SUM(pmf_amt) As Amt'),
         );
-        $query->whereColumn('pmf_pcs', '<>', 'pmf_received_pcs');
+        /*$query->where('pmf_ro',$admin->office_code);*/
+        //$query->where('pmf_received_pcs','0');
+        $query->where('pmf_type', 'IPMF');
+        $query->where('is_deleted', 0);
+        $query->havingRaw('SUM(pmf_pcs) - SUM(pmf_received_pcs) <> 0', [1]);
         $query->groupBy('pmf_no');
 
         if ($request->isMethod('get')) {
@@ -1035,12 +1150,12 @@ class MfController extends Controller
                 DB::raw('count(gms_pmf_dtls.pmf_wt) as packet_wt'), 'gms_pmf_dtls.pmf_type as manifest_type',
                 DB::raw('concat(gms_city.city_name,"(",gms_city.city_code,")")As city')
 
-            )->where('gms_pmf_dtls.pmf_no', $input['pmf_no'])->first();
+            )->where('pmf_type', 'IPMF')->where('gms_pmf_dtls.is_deleted', 0)->where('gms_pmf_dtls.pmf_no', $input['pmf_no'])->first();
 
-            $response['Pending'] = GmsPmfDtls::whereColumn('pmf_pcs', '<>', 'pmf_received_pcs')->where('pmf_no', $input['pmf_no'])->select('id', 'pmf_cnno', 'pmf_cnno_type', 'pmf_wt', 'pmf_vol_wt', 'pmf_pcs', 'pmf_pin', 'pmf_doc', 'pmf_city', 'pmf_remarks', 'pmf_received_by', 'pmf_status', 'created_at', 'pmf_received_date')->get();
-            $response['Completed'] = GmsPmfDtls::whereColumn('pmf_pcs', '=', 'pmf_received_pcs')->where('pmf_no', $input['pmf_no'])->select('id', 'pmf_cnno', 'pmf_cnno_type', 'pmf_wt', 'pmf_vol_wt', 'pmf_pcs', 'pmf_pin', 'pmf_doc', 'pmf_city', 'pmf_remarks', 'pmf_received_by', 'pmf_status', 'created_at', 'pmf_received_date')->get();
-            $response['total'] = GmsPmfDtls::select(DB::raw('SUM(pmf_wt) as total_weight'), DB::raw('COUNT(pmf_pcs) as total_cnno'), DB::raw('SUM(pmf_pcs) as total_pcs'), DB::raw('SUM(pmf_vol_wt) as total_vol_amount'))->where('pmf_no', $input['pmf_no'])->where('is_deleted', 0)->first();
-            $response['actua_packet_wight'] = GmsPmfDtls::select(DB::raw('sum(pmf_actual_wt) as totalActualwt'))->where('pmf_no', $input['pmf_no'])->first();
+            $response['Pending'] = GmsPmfDtls::whereColumn('pmf_pcs', '<>', 'pmf_received_pcs')->where('pmf_type', 'IPMF')->where('is_deleted', 0)->where('pmf_no', $input['pmf_no'])->select('id', 'pmf_cnno', 'pmf_cnno_type', 'pmf_wt', 'pmf_vol_wt', 'pmf_pcs', 'pmf_pin', 'pmf_doc', 'pmf_city', 'pmf_remarks', 'pmf_received_by', 'pmf_status', 'created_at', 'pmf_received_date')->get();
+            $response['Completed'] = GmsPmfDtls::whereColumn('pmf_pcs', '=', 'pmf_received_pcs')->where('pmf_type', 'IPMF')->where('is_deleted', 0)->where('pmf_no', $input['pmf_no'])->select('id', 'pmf_cnno', 'pmf_cnno_type', 'pmf_wt', 'pmf_vol_wt', 'pmf_pcs', 'pmf_pin', 'pmf_doc', 'pmf_city', 'pmf_remarks', 'pmf_received_by', 'pmf_status', 'created_at', 'pmf_received_date')->get();
+            $response['total'] = GmsPmfDtls::select(DB::raw('SUM(pmf_wt) as total_weight'), DB::raw('COUNT(pmf_pcs) as total_cnno'), DB::raw('SUM(pmf_pcs) as total_pcs'), DB::raw('SUM(pmf_vol_wt) as total_vol_amount'))->where('pmf_no', $input['pmf_no'])->where('pmf_type', 'IPMF')->where('is_deleted', 0)->where('is_deleted', 0)->first();
+            $response['actua_packet_wight'] = GmsPmfDtls::select(DB::raw('sum(pmf_actual_wt) as totalActualwt'))->where('pmf_type', 'IPMF')->where('is_deleted', 0)->where('pmf_no', $input['pmf_no'])->first();
             return $response;
         }
     }
@@ -1060,6 +1175,8 @@ class MfController extends Controller
             DB::raw('SUM(gms_co_mail.book_billamt) As Amt'),
             DB::raw('DATE_FORMAT(gms_co_mail.book_mfdate,"%d %b, %Y") as booking_date'),
         );
+        $query->where('gms_co_mail.is_deleted', 0);
+        $query->orderBy('gms_co_mail.id', 'desc');
         $query->groupBy('gms_co_mail.book_mfno');
         if ($request->isMethod('get')) {
             return $query->paginate($request->per_page);
@@ -1097,7 +1214,6 @@ class MfController extends Controller
         $input['book_br_code'] = $admin->office_code;
         $addCoMail = new GmsCoMail($input);
         $addCoMail->save();
-
         return $this->successResponse(self::CODE_OK, "Added Successfully!!", $addCoMail);
     }
 
@@ -1115,7 +1231,6 @@ class MfController extends Controller
             DB::raw('SUM(gms_mf_dtls.mf_wt) as total_weight'),
             DB::raw('SUM(gms_mf_dtls.mf_vol_wt) as vol_weight'),
             DB::raw('SUM(gms_mf_dtls.mf_pcs)As pcs'),
-
         );
         $query->where('gms_mf_dtls.mf_type', 'OMF');
         $query->where('gms_mf_dtls.is_deleted', 0);
@@ -1131,7 +1246,6 @@ class MfController extends Controller
                 DB::raw('SUM(gms_mf_dtls.mf_pcs)As pcs'))->where('mf_no', $input['mf_no'])->where('is_deleted', 0)->first();
 
             $response['mf_pmfDetails'] = GmsMfDtls::select('mf_pmf_dest', 'mf_pmfno', 'mf_remarks', 'mf_origin_type as incomed_by', 'mf_entry_date', 'mf_origin', 'mf_dest', 'mf_mode', 'mf_pcs', 'mf_srno', 'mf_wt', 'mf_actual_wt', 'mf_vol_wt')->where('mf_no', $input['mf_no'])->where('is_deleted', 0)->where('gms_mf_dtls.mf_type', 'OMF')->get();
-
             return $response;
         }
     }
@@ -1145,6 +1259,9 @@ class MfController extends Controller
         $mf_mode = $this->request->mf_mode;
         $mf_no = $this->request->opmf_no;
 
+        // if ($request->type == 'regular') {
+        // }elseif ($request->type == 'direct') {
+        // }
         $advanceSearchImf = GmsMfDtls::select(
             'mf_no as mf',
             'mf_emp_code as emp',
@@ -1180,4 +1297,21 @@ class MfController extends Controller
         // return $this->successResponse(self::CODE_OK, $query2);
     }
 
+    public function getDmfCnno()
+    {
+        $input = $this->request->all();
+        $getDmfCnno = GmsDmfDtls::select('id', 'dmf_mfno', 'dmf_ndel_reason', 'dmf_remarks')->where('dmf_cnno', $input['dmf_cnno'])->first();
+
+        if (!$getDmfCnno) {
+            return $this->errorResponse(self::CODE_INVALID_REQUEST, 'Plz Check Cnno No');
+        } else {
+            return $this->successResponse(self::CODE_OK, "Show Successfully!!", $getDmfCnno);
+        }
+    }
+
+    public function rtoCnnoList()
+    {
+        $getCnnoDetails = GmsRtoDtls::select('id', 'rto_reason', 'rto_remarks', 'status')->where('is_deleted', 0)->get();
+        return $this->successResponse(self::CODE_OK, "Show Successfully!!", $getCnnoDetails);
+    }
 }
